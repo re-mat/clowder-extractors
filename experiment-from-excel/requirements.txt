@@ -1,0 +1,2 @@
+pyclowder==2.7.0
+openpyxl==3.1.1
