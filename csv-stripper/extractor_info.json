@@ -1,0 +1,30 @@
+{
+  "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
+  "name": "remat.csv_stripper",
+  "version": "1.0.0",
+  "description": "Strip metadata from DSC Curve CSV file",
+  "author": "Ben Galewsky <bengal1@illinois.edu>",
+  "contributors": [],
+  "contexts": [],
+  "repository": [
+    {
+      "repType": "git",
+      "repUrl": "https://github.com/re-mat/clowder-extractors.git"
+    },
+    {
+      "repType": "docker",
+      "repUrl": "ghcr.io/re-mat/csv-stripper"
+    }
+  ],
+  "process": {
+    "file": [
+      "text/csv"
+    ]
+  },
+  "external_services": [],
+  "dependencies": [],
+  "bibtex": [],
+  "labels": [
+    "Type/Any"
+  ]
+}
