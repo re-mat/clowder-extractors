@@ -30,9 +30,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push experiment-from-excel image
         uses: docker/build-push-action@v4
         with:
           context: experiment-from-excel
           push: true
           tags: ghcr.io/re-mat/experiment-from-excel:${{ env.branch }}
+
+      - name: Build and push parameters from txt image
+        uses: docker/build-push-action@v4
+        with:
+          context: parameter-extractor
+          push: true
+          tags: ghcr.io/re-mat/parameter-extractor:${{ env.branch }}

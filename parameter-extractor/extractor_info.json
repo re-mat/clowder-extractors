@@ -1,0 +1,30 @@
+{
+  "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
+  "name": "remat.parameter-from-txt",
+  "version": "1.0.0",
+  "description": "Extract experiment procedure json from TA Instruments DSC",
+  "author": "Ben Galewsky <bengal1@illinois.edu>",
+  "contributors": [],
+  "contexts": [],
+  "repository": [
+    {
+      "repType": "git",
+      "repUrl": "https://github.com/re-mat/clowder-extractors.git"
+    },
+    {
+      "repType": "docker",
+      "repUrl": "ghcr.io/re-mat/parameter-extractor"
+    }
+  ],
+  "process": {
+    "file": [
+      "text/plain"
+    ]
+  },
+  "external_services": [],
+  "dependencies": [],
+  "bibtex": [],
+  "labels": [
+    "Type/Any"
+  ]
+}
