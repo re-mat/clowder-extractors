@@ -47,6 +47,6 @@ jobs:
       - name: Build and push csv stripper image
         uses: docker/build-push-action@v4
         with:
-          context: parameter-extractor
+          context: csv-stripper
           push: true
           tags: ghcr.io/re-mat/dsc-csv-stripper:${{ env.branch }}
