@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import json
 import logging
 import os
 import csv
@@ -7,6 +7,7 @@ import tempfile
 import typing
 from tempfile import NamedTemporaryFile
 
+import requests
 from pyclowder.extractors import Extractor
 from pyclowder.utils import CheckMessage
 import pyclowder.files
@@ -26,6 +27,21 @@ def is_float(element: any) -> bool:
         return True
     except ValueError:
         return False
+
+
+def set_dataset_title(connector, host, key, dataset_id, datasetname, description):
+    logger = logging.getLogger(__name__)
+    url = '%sapi/datasets/%s/title?key=%s' % (host, dataset_id, key)
+    result = requests.put(url, headers={"Content-Type": "application/json"},
+                          data=json.dumps({"name": datasetname}),
+                          verify=connector.ssl_verify if connector else True)
+    result.raise_for_status()
+
+    url = '%sapi/datasets/%s/description?key=%s' % (host, dataset_id, key)
+    result = requests.put(url, headers={"Content-Type": "application/json"},
+                          data=json.dumps({"description": description}),
+                          verify=connector.ssl_verify if connector else True)
+    result.raise_for_status()
 
 
 def extract_parameters(path, stripped_file: typing.TextIO):
@@ -97,6 +113,10 @@ class CSVStripper(Extractor):
             }
 
             pyclowder.files.upload_metadata(connector, host, secret_key, uploaded_id, metadata)
+            set_dataset_title(connector, host, secret_key,
+                              dataset_id=resource['parent'].get('id', None),
+                              datasetname=parameters['Sample name'],
+                              description=parameters['proceduresegments'])
 
 
 if __name__ == "__main__":
