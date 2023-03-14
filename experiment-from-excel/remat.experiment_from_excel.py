@@ -52,7 +52,18 @@ def read_thermochemical_from_worksheet(ws: Worksheet) -> dict:
 
 
 def excel_to_json(path):
+    logger = logging.getLogger('__main__')
+
     wb = load_workbook(filename=path)
+    # Find the data input spreadsheet version
+    ss_version = [prop.value for prop
+                  in wb.custom_doc_props.props
+                  if prop.name == "File Version"][0]
+
+    if ss_version != "1.0":
+        logger.error(f"This extractor is not compatible with spreadsheet version {ss_version}")
+        return {}
+
     inputs = {}
 
     for sheet in wb.sheetnames:
