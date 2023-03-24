@@ -18,8 +18,7 @@
   ],
   "process": {
     "file": [
-      "application/vnd_openxmlformats-officedocument_spreadsheetml_sheet",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd_openxmlformats-officedocument_spreadsheetml_sheet"
     ]
   },
   "external_services": [],
