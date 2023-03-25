@@ -15,6 +15,7 @@ from pyclowder.utils import CheckMessage
 import pyclowder.files
 from openpyxl import load_workbook
 
+
 def monomore_mol_percent(m_i, M_i, m_i_list, M_i_list):
     denominator = sum([i / j for i, j in zip(m_i_list, M_i_list)])
     numerator = (m_i/M_i)
@@ -33,6 +34,21 @@ def monomer_catalyst_molar_ratio(m_i_list, M_avg, m_c, M_c):
 
 def inhibitor_catayst_molar_ratio(V_inh, rho_inh, M_inh, m_c, M_c):
     return ((V_inh*rho_inh)/M_inh)/(m_c/M_c)
+
+def wt_percent_filler(m_fi, m_fi_list, m_i_list, m_c, V_inhrho_inh, V_srho_s):
+    return (m_fi/(sum(m_i_list) + sum(m_fi_list) + m_c + (V_inhrho_inh) + (V_srho_s)))
+
+def total_filler_volume(V_fi_list, m_fi_list, rho_fi_list):
+    if V_fi_list:
+        return sum(V_fi_list) 
+    else:
+        return sum([i/j for i, j in zip(m_fi_list, rho_fi_list)])
+
+def solvent_concentration(V_s, m_c):
+    return V_s/m_c
+
+def total_volume(V_mon, V_inh, V_s, V_f):
+    return (V_mon+V_inh+V_s+V_f)
 
 def extra_field_info(path):
     experiment = excel_to_json(path)
@@ -55,7 +71,6 @@ def extra_field_info(path):
         M_inh = i2.molecular_weight
         rho_inh = 1
 
-
     m_i = []
     V_i = []
     M_i = []
@@ -71,7 +86,6 @@ def extra_field_info(path):
         else:
             m_i.append(V_i[i]*rho_i[i]) 
         m_i.append(monomers[i]['Measured mass (mg)'])
-        
         # rho_i.append() 
 
     for i in range(len(M_i)):
@@ -81,12 +95,20 @@ def extra_field_info(path):
     M_avg = avg_monomer_molecular_weight(X_i, M_i)
     m_c_ratio = monomer_catalyst_molar_ratio(m_i, M_avg, m_c, M_c)
     i_c_ratio = inhibitor_catayst_molar_ratio(V_inh, rho_inh, M_inh, m_c, M_c)
+    V_inhrho_inh = V_inh*rho_inh
+    # V_srho_s = V_sol*rho_sol
+    # if m_fi:
+    #     wt_filler_per = wt_percent_filler(m_fi, m_i, m_c, V_inhrho_inh, V_srho_s)
+    # else:
+    #     m_fi = V_fi*rho_fi
+    #     wt_filler_per = wt_percent_filler(m_fi, m_i, m_c, V_inhrho_inh, V_srho_s)
 
     print(X_i)
     # print(V_mon)
     print(M_avg)
     print(m_c_ratio)
     print(i_c_ratio)
+    # print(wt_filler_per)
 
 
 def read_inputs_from_worksheet(ws: Worksheet) -> dict:
@@ -143,11 +165,6 @@ def excel_to_json(path):
         "inputs": inputs,
         "thermochemical": thermochemical
     }
-
-# def chemical_spider_properties():
-#     json_dump = excel_to_json()
-
-#     cs = ChemSpider('Ckds5RZ45uKXBmjrPe4rYxEHNcfzD05x')
 
 class ExperimentFromExcel(Extractor):
     def __init__(self):
