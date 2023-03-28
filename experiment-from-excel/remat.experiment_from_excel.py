@@ -1,12 +1,61 @@
 #!/usr/bin/env python
-
+from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Filler
 import logging
 
 import pyclowder.files
 from openpyxl import load_workbook
+from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from pyclowder.extractors import Extractor
 from pyclowder.utils import CheckMessage
+
+
+def compute_values(inputs: dict):
+    # First, create lists of input-specific chemistry converters with the observed values
+    db = ChemDB()
+
+    db.exists([compound["SMILES"] for compound in inputs['monomers']])
+    monomers = {compound["SMILES"]:
+        Monomer(compound["SMILES"], db, compound["Measured mass (mg)"],
+                 compound["Measured volume (μL)"]) for compound in inputs['monomers']}
+
+    print(monomers)
+
+    db.exists([compound["SMILES"] for compound in inputs['catalysts']])
+    catalysts = [
+        [Catalyst(compound["SMILES"], db, compound["Measured mass (mg)"], None) for compound in inputs['catalysts']]
+    ]
+    print(catalysts)
+
+    db.exists([compound["SMILES"] for compound in inputs['inhibitors']])
+    inhibitors = [
+        [Inhibitor(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['inhibitors']]
+    ]
+    print(inhibitors)
+
+    # db.exists([compound["SMILES"] for compound in inputs['additives']])
+    # additives = [
+    #     [Additive(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['additives']]
+    # ]
+    # print(additives)
+
+    # db.exists([compound["SMILES"] for compound in inputs['fillers']])
+    # fillers = [
+    #     [Filler(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['fillers']]
+    # ]
+    # print(fillers)
+
+    # Now compute derived values (which requires knowledge of all of the inputs)
+    monomer2 = [{
+        "name": monomer["Name"],
+        "SMILES": monomer["SMILES"],
+        "Measured mass (mg)": monomer["Measured mass (mg)"],
+        "Measured volume (μL)": monomer["Measured volume (μL)"],
+        "Computed mass (mg)": monomers[monomer["SMILES"]].mass,
+        "Monomer mol%": monomers[monomer["SMILES"]].monomer_mol_percent(monomers.values())
+    }
+        for monomer in inputs["monomers"]]
+    print("monomer2 --->", monomer2)
 
 
 def read_inputs_from_worksheet(ws: Worksheet) -> dict:
@@ -25,6 +74,12 @@ def read_procedure_from_worksheet(ws: Worksheet) -> dict:
         procedure[row[0].value] = row[1].value
 
     return procedure
+
+
+def read_batch_id(wb: Workbook) -> str:
+    batch_id_range = wb.defined_names["BatchID"].value.split("!")
+    batch_id_cell = wb[batch_id_range[0]][batch_id_range[1]]
+    return batch_id_cell.value
 
 
 def read_thermochemical_from_worksheet(ws: Worksheet) -> dict:
@@ -49,7 +104,7 @@ def read_thermochemical_from_worksheet(ws: Worksheet) -> dict:
 def excel_to_json(path):
     logger = logging.getLogger('__main__')
 
-    wb = load_workbook(filename=path)
+    wb = load_workbook(filename=path, data_only=True)
     # Find the data input spreadsheet version
     ss_version = [prop.value for prop
                   in wb.custom_doc_props.props
@@ -60,6 +115,7 @@ def excel_to_json(path):
         return {}
 
     inputs = {}
+    batch_id = read_batch_id(wb)
 
     for sheet in wb.sheetnames:
         if sheet == "thermochemical":
@@ -69,7 +125,10 @@ def excel_to_json(path):
         else:
             inputs[sheet] = read_inputs_from_worksheet(wb[sheet])
 
+    compute_values(inputs)
+
     return {
+        "Batch ID": batch_id,
         "procedure": procedure,
         "inputs": inputs,
         "thermochemical": thermochemical

@@ -9,8 +9,13 @@ class ChemDB:
     def load_database(self):
         self.data = pandas.read_csv("https://uofi.box.com/shared/static/p8r6ef1lcj0lk44ggcb6zmv1d66abyfk.csv", index_col="SMILES")
 
-    def exists(self, smiles: str) -> bool:
-        return smiles in self.data.index.to_list()
+    def exists(self, smiles: str | list) -> bool:
+        if type(smiles) == str:
+            return smiles in self.data.index.to_list()
+        else:
+            for test_smiles in smiles:
+                if not self.exists(test_smiles):
+                    raise ValueError(f"{test_smiles} not in Chemistry Database")
 
     def density(self, smiles) -> float:
         return self.data.at[smiles, "Density (g/mL)"]
@@ -29,6 +34,10 @@ class ChemistryConverter:
         self.density = db.density(smiles)
         self.volume = volume
 
+        mass = None if mass == "-" else mass
+        volume = None if volume == "-" else volume
+
+
         if not mass and not volume:
             raise ValueError("Volume or mass must be specified")
 
@@ -39,6 +48,9 @@ class ChemistryConverter:
             self.mass = mass
         else:
             self.mass = self.mass_from_volume(volume)
+
+    def __repr__(self):
+        return f"{type(self)} {self.smiles} - Mass: {self.mass}, Volume: {self.volume()}, Moles {self.moles()}"
 
     def mass_from_volume(self, volume: float) -> float:
         return volume * self.density
