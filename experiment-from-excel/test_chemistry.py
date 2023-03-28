@@ -66,77 +66,70 @@ def test_monomer_catalyst(db):
         Monomer(dicyclopentadiene, db, mass=870.0),
         Monomer(enb, db, mass=560.0)
     ]
-    catalyst = [
-        Catalyst(dicyclopentadiene, db, mass=870.0)
-    ]
+    catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
 
-    assert round(catalyst[0].catalyst_monomer_molar_ratio(monomers,catalyst), 2) == 1.71
+    assert round(catalyst.catalyst_monomer_molar_ratio(monomers), 2) == 1.71
 
 
 def test_catalyst_inhibitor(db):
-    inhibitor = [
-        Inhibitor(enb, db, volume=887.0)   
-    ]
-    catalyst = [
-        Catalyst(dicyclopentadiene, db, mass=870.0)
-    ]
+    inhibitor = Inhibitor(enb, db, volume=887.0)   
+    catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
 
-    assert round(inhibitor[0].inhibitor_catalyst_molar_ratio(catalyst,inhibitor), 2) == 1.0 
+    assert round(inhibitor.inhibitor_catalyst_molar_ratio(catalyst), 2) == 1.0 
 
 def test_fillers(db):
     monomers = [
         Monomer(dicyclopentadiene, db, mass=870.0),
         Monomer(enb, db, mass=560.0)
     ]
-    inhibitor = [
-        Inhibitor(enb, db, volume=887.0)   
-    ]
-    catalyst = [
-        Catalyst(dicyclopentadiene, db, mass=870.0)
-    ]
+    inhibitor = Inhibitor(enb, db, volume=887.0)   
+    catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
     filler = [
         Filler(dicyclopentadiene, db, mass=870.0),
         Filler(enb, db, mass=560.0)
     ]
-    solvent = [
-        Solvent(enb, db, volume=887.0)   
-    ]
+    solvent = Solvent(enb, db, volume=887.0)   
 
     assert round(filler[0].filler_weight_percent(filler, monomers, catalyst, inhibitor, solvent), 2) == 3884.79
     assert round(filler[0].filler_volume_total(filler), 2) == 1514.85
 
-def test_fillers_converter_volume(db):
+def test_fillers_converter(db):
     monomers = [
         Monomer(dicyclopentadiene, db, mass=870.0),
         Monomer(enb, db, mass=560.0)
     ]
-    inhibitor = [
-        Inhibitor(enb, db, volume=887.0)   
-    ]
-    catalyst = [
-        Catalyst(dicyclopentadiene, db, mass=870.0)
-    ]
+    inhibitor = Inhibitor(enb, db, volume=887.0)   
+    catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
     filler = [
         Filler(enb, db, volume=560.0),
         Filler(dicyclopentadiene, db, volume=870.0),
        
     ]
-    solvent = [
-        Solvent(enb, db, volume=887.0)   
-    ]
+    solvent = Solvent(enb, db, volume=887.0)   
 
     assert round(filler[0].filler_weight_percent(filler, monomers, catalyst, inhibitor, solvent), 2) == 3807.21
+    
+def test_filler_volume(db):
+    filler = [
+        Filler(enb, db, volume=560.0),
+        Filler(dicyclopentadiene, db, volume=870.0),
+       
+    ]
     assert round(filler[0].filler_volume_total(filler), 2) == 1430.0
 
-def test_solvent_volume(db):
-    solvent = [
-        Solvent(enb, db, volume=887.0)   
+def test_filler_volume_converter(db):
+    filler = [
+        Filler(enb, db, mass=560.0),
+        Filler(dicyclopentadiene, db, mass=870.0),
+       
     ]
-    catalyst = [
-        Catalyst(dicyclopentadiene, db, mass=870.0)
-    ]
+    assert round(filler[0].filler_volume_total(filler), 2) == 1514.85
 
-    assert round(solvent[0].solvent_concentration(solvent,catalyst), 2) == 1.02
+def test_solvent_volume(db):
+    solvent =  Solvent(enb, db, volume=887.0)   
+    catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
+
+    assert round(solvent.solvent_concentration(catalyst), 2) == 1.02
 
 
 def test_total_volume(db):
@@ -144,16 +137,12 @@ def test_total_volume(db):
         Monomer(dicyclopentadiene, db, mass=870.0),
         Monomer(enb, db, mass=560.0)
     ]
-    inhibitor = [
-        Inhibitor(enb, db, volume=887.0)   
-    ]
-    solvent = [
-        Solvent(enb, db, volume=887.0)   
-    ]
+    inhibitor = Inhibitor(enb, db, volume=887.0)   
+    solvent = Solvent(enb, db, volume=887.0)   
     filler = [
         Filler(enb, db, volume=560.0),
         Filler(dicyclopentadiene, db, volume=870.0),
        
     ]
 
-    assert round(filler[0].total_volume(monomers, inhibitor, solvent, filler), 2) == 4124.85
+    assert round(filler[0].total_volume(monomers, inhibitor, solvent), 2) == 3848.85
