@@ -50,7 +50,7 @@ class ChemistryConverter:
             self.mass = self.mass_from_volume(volume)
 
     def __repr__(self):
-        return f"{type(self)} {self.smiles} - Mass: {self.mass}, Volume: {self.volume()}, Moles {self.moles()}"
+        return f"{type(self)} {self.smiles} - Mass: {self.mass}, Volume: {self.volume}, Moles {self.moles()}"
 
     def mass_from_volume(self, volume: float) -> float:
         return volume * self.density
