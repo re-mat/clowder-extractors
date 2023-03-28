@@ -1,5 +1,4 @@
 import pandas
-import logging
 
 class ChemDB:
     def __init__(self):
@@ -36,7 +35,6 @@ class ChemistryConverter:
 
         mass = None if mass == "-" else mass
         volume = None if volume == "-" else volume
-
 
         if not mass and not volume:
             raise ValueError("Volume or mass must be specified")
@@ -114,13 +112,10 @@ class Filler(ChemistryConverter):
         return ((self.mass/sum_m_i) + sum([fill.mass for fill in filler]) + catalyst.mass + ( inhibitor.volume * inhibitor.density) + ( solvent.volume * solvent.density))
 
     def filler_volume_total(self, filler: list) -> float: 
-        if self.volume:
-            return sum([fill.volume for fill in filler])
-        else:
-            return sum([(fill.mass/fill.density) for fill in filler])
+        return sum([fill.volume if fill.volume else (fill.mass/fill.density) for fill in filler])
 
-    def total_volume(self, monomers: list, inhibitor: list, solvent: list):
-        return self.volume + Monomer.monomer_volume(self, monomers) + inhibitor.volume + solvent.volume
+    def total_volume(self, filler: list, monomers: list, inhibitor: list, solvent: list):
+        return self.filler_volume_total(filler) + Monomer.monomer_volume(self, monomers) + inhibitor.volume + solvent.volume
 
 
 if __name__ == "__main__":
