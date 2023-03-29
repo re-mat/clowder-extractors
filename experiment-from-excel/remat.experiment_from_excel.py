@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import json
 
-from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Filler, Solvent, Additive
+from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive
 import logging
 
 import pyclowder.files
