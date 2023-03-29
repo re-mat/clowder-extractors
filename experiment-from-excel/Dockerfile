@@ -14,5 +14,5 @@ WORKDIR /extractor
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-COPY remat.experiment_from_excel.py extractor_info.json ./
+COPY remat.experiment_from_excel.py extractor_info.json chemistry.py ./
 CMD python remat.experiment_from_excel.py
