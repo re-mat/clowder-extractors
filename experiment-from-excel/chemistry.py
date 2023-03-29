@@ -11,10 +11,11 @@ class ChemDB:
     def exists(self, smiles: str | list) -> bool:
         if type(smiles) == str:
             return smiles in self.data.index.to_list()
-        else:
+        elif type(smiles) == list:
             for test_smiles in smiles:
-                if not self.exists(test_smiles):
+                if test_smiles and not self.exists(test_smiles):
                     raise ValueError(f"{test_smiles} not in Chemistry Database")
+            return True
 
     def density(self, smiles) -> float:
         return self.data.at[smiles, "Density (g/mL)"]
@@ -65,7 +66,7 @@ class Monomer(ChemistryConverter):
 
     def monomer_mol_percent(self, monomers: list) -> float:
         denominator = sum([monomer.moles() for monomer in monomers])
-        return self.moles() / denominator
+        return (self.moles() / denominator) * 100.0
     
     def monomer_volume(self, monomers: list) -> float:
         return sum([monomer.m_volume() for monomer in monomers]) 
@@ -98,8 +99,12 @@ class Inhibitor(ChemistryConverter):
 
 
 class Additive(ChemistryConverter):
-    pass
+    def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):
+        super().__init__(smiles, db, mass, volume)
 
+    def filler_weight_percent(self, filler: list, monomers: list, catalyst: object, solvent: object) -> float:
+        sum_m_i = sum([monomer.mass for monomer in monomers])
+        return self.mass/(sum_m_i + sum([fill.mass for fill in filler]) + catalyst.mass + ( solvent.volume * solvent.density)) * 100.0
 
 class Solvent(ChemistryConverter):
     def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):

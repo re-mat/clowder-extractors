@@ -11,6 +11,11 @@ from openpyxl.worksheet.worksheet import Worksheet
 from pyclowder.extractors import Extractor
 from pyclowder.utils import CheckMessage
 
+def microliters_to_milli(value):
+    if value and value != "-":
+        return float(value)/1000.0
+    else:
+        return value
 
 def compute_values(inputs: dict):
     # First, create lists of input-specific chemistry converters with the observed values
@@ -18,14 +23,14 @@ def compute_values(inputs: dict):
 
     db.exists([compound["SMILES"] for compound in inputs['monomers']])
     monomers = {compound["SMILES"]:
-        Monomer(compound["SMILES"], db, compound["Measured mass (mg)"],
-                 compound["Measured volume (μL)"]) for compound in inputs['monomers']}
+        Monomer(compound["SMILES"], db, compound["Measured mass (g)"],
+                 microliters_to_milli(compound["Measured volume (μL)"])) for compound in inputs['monomers']}
 
     print(monomers)
 
     db.exists([compound["SMILES"] for compound in inputs['catalysts']])
     catalysts = {compound["SMILES"]:
-                     Catalyst(compound["SMILES"], db, compound["Measured mass (mg)"],
+                     Catalyst(compound["SMILES"], db, compound["Measured mass (mg)"] / 1000.0,
                               None) for compound in inputs['catalysts']}
     print(catalysts)
 
@@ -38,9 +43,11 @@ def compute_values(inputs: dict):
     print(inhibitors)
 
     db.exists([compound["SMILES"] for compound in inputs['additives']])
-    additives = [
-        [Additive(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['additives']]
-    ]
+    additives = {compound["SMILES"]:
+                     Additive(compound["SMILES"], db, compound["Measured mass (g)"],
+                              compound["Measured volume (μL)"]) for compound in
+                 inputs['additives']
+                 }
     print(additives)
 
     # db.exists([compound["SMILES"] for compound in inputs['fillers']])
@@ -52,7 +59,7 @@ def compute_values(inputs: dict):
     db.exists([compound["SMILES"] for compound in inputs['solvents']])
     solvents = {compound["SMILES"]:
                     Solvent(compound["SMILES"], db, compound["Measured mass (mg)"],
-                            compound["Measured volume (μL)"]) for compound in
+                            microliters_to_milli(compound["Measured volume (μL)"])) for compound in
                 inputs['solvents']}
     print(solvents)
 
@@ -60,9 +67,9 @@ def compute_values(inputs: dict):
     monomer2 = [{
         "name": monomer["Name"],
         "SMILES": monomer["SMILES"],
-        "Measured mass (mg)": monomer["Measured mass (mg)"],
+        "Measured mass (g)": monomer["Measured mass (g)"],
         "Measured volume (μL)": monomer["Measured volume (μL)"],
-        "Computed mass (mg)": monomers[monomer["SMILES"]].mass,
+        "Computed mass (g)": monomers[monomer["SMILES"]].mass,
         "Molecular Weight": monomers[monomer["SMILES"]].molecular_weight,
         "Moles": monomers[monomer["SMILES"]].moles(),
         "Monomer mol%": monomers[monomer["SMILES"]].monomer_mol_percent(monomers.values())
@@ -74,6 +81,7 @@ def compute_values(inputs: dict):
         "name": catalyst["Name"],
         "SMILES": catalyst["SMILES"],
         "Measured mass (mg)": catalyst["Measured mass (mg)"],
+        "Computed mass (g)": catalysts[catalyst["SMILES"]].mass,
         "Molecular Weight": catalysts[catalyst["SMILES"]].molecular_weight,
         "Moles": catalysts[catalyst["SMILES"]].moles(),
         "Monomer:Catalyst molar ratio": catalysts[catalyst["SMILES"]].catalyst_monomer_molar_ratio(monomers.values())
@@ -97,11 +105,16 @@ def compute_values(inputs: dict):
     additive2 = [{
         "name": additive["Name"],
         "SMILES": additive["SMILES"],
-        "Measured mass (mg)": additive["Measured mass (mg)"],
+        "Measured mass (g)": additive["Measured mass (g)"],
         "Measured volume (μL)": additive["Measured volume (μL)"],
-        "Computed mass (mg)": additives[additive["SMILES"]].mass,
+        "Computed mass (g)": additives[additive["SMILES"]].mass,
         "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
-        "Moles": additives[additive["SMILES"]].moles()
+        "Moles": additives[additive["SMILES"]].moles(),
+        "Wt Percent of Fillers": additives[additive["SMILES"]].filler_weight_percent(
+            list(additives.values()),
+            list(monomers.values()),
+            list(catalysts.values())[0],
+            list(solvents.values())[0])
     }
         for additive in inputs["additives"]]
     print("additive2 --->", additive2)
@@ -131,7 +144,8 @@ def read_inputs_from_worksheet(ws: Worksheet) -> dict:
     headers = [col.value for col in list(ws.rows)[0]]
     for row in ws.iter_rows(min_row=2):
         input_properties = {key: cell.value for key, cell in zip(headers, row)}
-        inputs.append(input_properties)
+        if input_properties["SMILES"]:
+            inputs.append(input_properties)
 
     return inputs
 
@@ -233,10 +247,10 @@ class ExperimentFromExcel(Extractor):
         }
 
         pyclowder.datasets.upload_metadata(connector, host, secret_key,
-                                           resource['parent'].get('id', None), metadata)
+                                           resource['parent'].get('id', None), json.loads(json.dumps(metadata, default=str, ensure_ascii=False)))
 
 
 if __name__ == "__main__":
     # extractor = ExperimentFromExcel()
     # extractor.start()
-    print(json.dumps(excel_to_json("data_entry v2.xlsx"), default=str, ensure_ascii=False))
+    print(json.dumps(excel_to_json("/Users/bengal1/Downloads/data_entry v2.xlsx"), default=str, ensure_ascii=False))
