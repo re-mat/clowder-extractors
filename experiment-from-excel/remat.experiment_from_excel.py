@@ -50,12 +50,6 @@ def compute_values(inputs: dict):
                  }
     print(additives)
 
-    # db.exists([compound["SMILES"] for compound in inputs['fillers']])
-    # fillers = [
-    #     [Filler(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['fillers']]
-    # ]
-    # print(fillers)
-
     db.exists([compound["SMILES"] for compound in inputs['solvents']])
     solvents = {compound["SMILES"]:
                     Solvent(compound["SMILES"], db, compound["Measured mass (mg)"],
@@ -110,7 +104,7 @@ def compute_values(inputs: dict):
         "Computed mass (g)": additives[additive["SMILES"]].mass,
         "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
         "Moles": additives[additive["SMILES"]].moles(),
-        "Wt Percent of Fillers": additives[additive["SMILES"]].filler_weight_percent(
+        "Wt Percent of Additives": additives[additive["SMILES"]].additive_weight_percent(
             list(additives.values()),
             list(monomers.values()),
             list(catalysts.values())[0],
@@ -251,6 +245,6 @@ class ExperimentFromExcel(Extractor):
 
 
 if __name__ == "__main__":
-    extractor = ExperimentFromExcel()
-    extractor.start()
-    # print(json.dumps(excel_to_json("/Users/bengal1/Downloads/data_entry v2.xlsx"), default=str, ensure_ascii=False))
+    # extractor = ExperimentFromExcel()
+    # extractor.start()
+    print(json.dumps(excel_to_json("/Users/bengal1/Downloads/data_entry v2.xlsx"), default=str, ensure_ascii=False))
