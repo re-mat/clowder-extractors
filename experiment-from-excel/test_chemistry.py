@@ -125,6 +125,14 @@ def test_filler_volume_converter(db):
     ]
     assert round(filler[0].filler_volume_total(filler), 2) == 1514.85
 
+def test_filler_mass_volume_combination(db):
+    filler = [
+        Filler(enb, db, mass=560.0),
+        Filler(dicyclopentadiene, db, volume=870.0),
+       
+    ]
+    assert round(filler[0].filler_volume_total(filler), 2) == 1497.1
+
 def test_solvent_volume(db):
     solvent =  Solvent(enb, db, volume=887.0)   
     catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
@@ -145,4 +153,4 @@ def test_total_volume(db):
        
     ]
 
-    assert round(filler[0].total_volume(monomers, inhibitor, solvent), 2) == 3848.85
+    assert round(filler[0].total_volume(filler, monomers, inhibitor, solvent), 2) == 4718.85
