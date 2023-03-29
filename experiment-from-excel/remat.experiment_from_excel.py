@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Filler
+from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Filler, Solvent
 import logging
 
 import pyclowder.files
@@ -22,15 +22,17 @@ def compute_values(inputs: dict):
     print(monomers)
 
     db.exists([compound["SMILES"] for compound in inputs['catalysts']])
-    catalysts = [
-        [Catalyst(compound["SMILES"], db, compound["Measured mass (mg)"], None) for compound in inputs['catalysts']]
-    ]
+    catalysts = {compound["SMILES"]:
+                     Catalyst(compound["SMILES"], db, compound["Measured mass (mg)"],
+                              None) for compound in inputs['catalysts']}
     print(catalysts)
 
     db.exists([compound["SMILES"] for compound in inputs['inhibitors']])
-    inhibitors = [
-        [Inhibitor(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['inhibitors']]
-    ]
+    inhibitors = {compound["SMILES"]:
+                      Inhibitor(compound["SMILES"], db, None,
+                                compound["Measured volume (μL)"]) for compound in
+                  inputs['inhibitors']
+                  }
     print(inhibitors)
 
     # db.exists([compound["SMILES"] for compound in inputs['additives']])
@@ -45,6 +47,13 @@ def compute_values(inputs: dict):
     # ]
     # print(fillers)
 
+    db.exists([compound["SMILES"] for compound in inputs['solvents']])
+    solvents = {compound["SMILES"]:
+                    Solvent(compound["SMILES"], db, compound["Measured mass (mg)"],
+                            compound["Measured volume (μL)"]) for compound in
+                inputs['solvents']}
+    print(solvents)
+
     # Now compute derived values (which requires knowledge of all of the inputs)
     monomer2 = [{
         "name": monomer["Name"],
@@ -52,10 +61,36 @@ def compute_values(inputs: dict):
         "Measured mass (mg)": monomer["Measured mass (mg)"],
         "Measured volume (μL)": monomer["Measured volume (μL)"],
         "Computed mass (mg)": monomers[monomer["SMILES"]].mass,
+        "Molecular Weight": monomers[monomer["SMILES"]].molecular_weight,
+        "Moles": monomers[monomer["SMILES"]].moles(),
         "Monomer mol%": monomers[monomer["SMILES"]].monomer_mol_percent(monomers.values())
     }
         for monomer in inputs["monomers"]]
     print("monomer2 --->", monomer2)
+
+    catalyst2 = [{
+        "name": catalyst["Name"],
+        "SMILES": catalyst["SMILES"],
+        "Measured mass (mg)": catalyst["Measured mass (mg)"],
+        "Molecular Weight": catalysts[catalyst["SMILES"]].molecular_weight,
+        "Moles": catalysts[catalyst["SMILES"]].moles(),
+        "Monomer:Catalyst molar ratio": catalysts[catalyst["SMILES"]].catalyst_monomer_molar_ratio(monomers.values())
+    }
+        for catalyst in inputs["catalysts"]]
+    print("catalyst2 --->", catalyst2)
+
+    inhibitor2 = [{
+        "name": inhibitor["Name"],
+        "SMILES": inhibitor["SMILES"],
+        "Measured volume (μL)": inhibitor["Measured volume (μL)"],
+        "Density": inhibitors[inhibitor["SMILES"]].density,
+        "Computed mass (mg)": inhibitors[inhibitor["SMILES"]].mass,
+        "Molecular Weight": inhibitors[inhibitor["SMILES"]].molecular_weight,
+        "Moles": inhibitors[inhibitor["SMILES"]].moles(),
+        "Inhibitor:Catalyst molar ratio": inhibitors[inhibitor["SMILES"]].inhibitor_catalyst_molar_ratio(catalysts)
+    }
+        for inhibitor in inputs["inhibitors"]]
+    print("inhibitor2 --->", inhibitor2)
 
 
 def read_inputs_from_worksheet(ws: Worksheet) -> dict:
