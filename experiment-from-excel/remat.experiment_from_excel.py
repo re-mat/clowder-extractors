@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import json
+
 from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Filler, Solvent, Additive
 import logging
 
@@ -104,6 +106,25 @@ def compute_values(inputs: dict):
         for additive in inputs["additives"]]
     print("additive2 --->", additive2)
 
+
+    solvents2 = [{
+        "name": solvent["Name"],
+        "SMILES": solvent["SMILES"],
+        "Measured mass (mg)": solvent["Measured mass (mg)"],
+        "Measured volume (μL)": solvent["Measured volume (μL)"],
+        "Computed mass (mg)": solvents[solvent["SMILES"]].mass,
+        "Molecular Weight": solvents[solvent["SMILES"]].molecular_weight,
+        "Moles": solvents[solvent["SMILES"]].moles(),
+        "Solvent concentration": solvents[solvent["SMILES"]].solvent_concentration(list(catalysts.values())[0])
+    }
+        for solvent in inputs["solvents"]]
+    print("solvents2 --->", solvents2)
+
+    inputs['monomers'] = monomer2
+    inputs["catalysts"] = catalyst2
+    inputs["inhibitors"] = inhibitor2
+    inputs["additives"] = additive2
+    inputs["solvents"] = solvents2
 
 def read_inputs_from_worksheet(ws: Worksheet) -> dict:
     inputs = []
@@ -218,4 +239,4 @@ class ExperimentFromExcel(Extractor):
 if __name__ == "__main__":
     # extractor = ExperimentFromExcel()
     # extractor.start()
-    print(excel_to_json("data_entry v2.xlsx"))
+    print(json.dumps(excel_to_json("data_entry v2.xlsx"), default=str, ensure_ascii=False))
