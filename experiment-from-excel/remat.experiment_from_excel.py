@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Filler, Solvent
+from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Filler, Solvent, Additive
 import logging
 
 import pyclowder.files
@@ -35,11 +35,11 @@ def compute_values(inputs: dict):
                   }
     print(inhibitors)
 
-    # db.exists([compound["SMILES"] for compound in inputs['additives']])
-    # additives = [
-    #     [Additive(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['additives']]
-    # ]
-    # print(additives)
+    db.exists([compound["SMILES"] for compound in inputs['additives']])
+    additives = [
+        [Additive(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['additives']]
+    ]
+    print(additives)
 
     # db.exists([compound["SMILES"] for compound in inputs['fillers']])
     # fillers = [
@@ -91,6 +91,18 @@ def compute_values(inputs: dict):
     }
         for inhibitor in inputs["inhibitors"]]
     print("inhibitor2 --->", inhibitor2)
+
+    additive2 = [{
+        "name": additive["Name"],
+        "SMILES": additive["SMILES"],
+        "Measured mass (mg)": additive["Measured mass (mg)"],
+        "Measured volume (μL)": additive["Measured volume (μL)"],
+        "Computed mass (mg)": additives[additive["SMILES"]].mass,
+        "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
+        "Moles": additives[additive["SMILES"]].moles()
+    }
+        for additive in inputs["additives"]]
+    print("additive2 --->", additive2)
 
 
 def read_inputs_from_worksheet(ws: Worksheet) -> dict:

@@ -3,7 +3,8 @@ import math
 import pytest
 from _pytest.fixtures import fixture
 
-from chemistry import ChemDB, ChemistryConverter, Monomer, Catalyst, Inhibitor, Filler, Solvent
+from chemistry import ChemDB, ChemistryConverter, Monomer, Catalyst, Inhibitor, Filler, \
+    Solvent, Additive
 
 dicyclopentadiene = "C1C=CC2C1C3CC2C=C3"
 enb = "CC=C1CC2CC1C=C2"
@@ -154,3 +155,8 @@ def test_total_volume(db):
     ]
 
     assert round(filler[0].total_volume(filler, monomers, inhibitor, solvent), 2) == 4718.85
+
+
+def test_additives(db):
+    a = Additive(dicyclopentadiene, db, mass=870.0)
+    assert a

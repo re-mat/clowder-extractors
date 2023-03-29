@@ -96,6 +96,11 @@ class Inhibitor(ChemistryConverter):
         denominator = catalyst.mass / catalyst.molecular_weight
         return ((self.volume * self.density)/ self.molecular_weight) / denominator
 
+
+class Additive(ChemistryConverter):
+    pass
+
+
 class Solvent(ChemistryConverter):
     def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):
         super().__init__(smiles, db, mass, volume)
