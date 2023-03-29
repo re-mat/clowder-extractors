@@ -169,7 +169,7 @@ def test_derived_values(db):
         Monomer(enb, db, mass=0.55)
     ]
     catalyst = Catalyst(gc2, db, mass=7.14/1000)
-    solvent = Solvent(mn1, db, volume=357.87)  
+    solvent = Solvent(mn1, db, volume=356.87/1000)  
     additives = [
         Additive(fumed_si, db, mass=0.59),
         Additive(pbd, db, mass=0.12)
@@ -178,5 +178,6 @@ def test_derived_values(db):
     assert round(monomers[0].monomer_mol_percent(monomers), 2) == 94.56
     assert round(monomers[1].monomer_mol_percent(monomers), 2) == 5.44
     assert round(catalyst.catalyst_monomer_molar_ratio(monomers), 2) == 9997.09
-    # assert round(solvent.solvent_concentration(catalyst), 2) == 0.02
-    assert round(additives[1].additive_weight_percent(additives, monomers, catalyst, solvent), 2) == 0.03
+    assert round(solvent.solvent_concentration(catalyst), 2) == 49.98
+    assert round(additives[0].additive_weight_percent(additives, monomers, catalyst, solvent), 2) == 4.86
+    assert round(additives[1].additive_weight_percent(additives, monomers, catalyst, solvent), 2) == 0.99
