@@ -87,7 +87,7 @@ def compute_values(inputs: dict):
         "Computed mass (mg)": inhibitors[inhibitor["SMILES"]].mass,
         "Molecular Weight": inhibitors[inhibitor["SMILES"]].molecular_weight,
         "Moles": inhibitors[inhibitor["SMILES"]].moles(),
-        "Inhibitor:Catalyst molar ratio": inhibitors[inhibitor["SMILES"]].inhibitor_catalyst_molar_ratio(catalysts)
+        "Inhibitor:Catalyst molar ratio": inhibitors[inhibitor["SMILES"]].inhibitor_catalyst_molar_ratio(list(catalysts.values())[0])
     }
         for inhibitor in inputs["inhibitors"]]
     print("inhibitor2 --->", inhibitor2)
