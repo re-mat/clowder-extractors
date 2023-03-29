@@ -251,6 +251,6 @@ class ExperimentFromExcel(Extractor):
 
 
 if __name__ == "__main__":
-    # extractor = ExperimentFromExcel()
-    # extractor.start()
-    print(json.dumps(excel_to_json("/Users/bengal1/Downloads/data_entry v2.xlsx"), default=str, ensure_ascii=False))
+    extractor = ExperimentFromExcel()
+    extractor.start()
+    # print(json.dumps(excel_to_json("/Users/bengal1/Downloads/data_entry v2.xlsx"), default=str, ensure_ascii=False))
