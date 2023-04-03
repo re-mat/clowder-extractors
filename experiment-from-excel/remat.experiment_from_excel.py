@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import json
 
-from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Filler, Solvent, Additive
+from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive
 import logging
 
 import pyclowder.files
@@ -49,12 +49,6 @@ def compute_values(inputs: dict):
                  inputs['additives']
                  }
     print(additives)
-
-    # db.exists([compound["SMILES"] for compound in inputs['fillers']])
-    # fillers = [
-    #     [Filler(compound["SMILES"], db, None, compound["Measured volume (μL)"]) for compound in inputs['fillers']]
-    # ]
-    # print(fillers)
 
     db.exists([compound["SMILES"] for compound in inputs['solvents']])
     solvents = {compound["SMILES"]:
@@ -110,7 +104,7 @@ def compute_values(inputs: dict):
         "Computed mass (g)": additives[additive["SMILES"]].mass,
         "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
         "Moles": additives[additive["SMILES"]].moles(),
-        "Wt Percent of Fillers": additives[additive["SMILES"]].filler_weight_percent(
+        "Wt Percent of Additives": additives[additive["SMILES"]].additive_weight_percent(
             list(additives.values()),
             list(monomers.values()),
             list(catalysts.values())[0],

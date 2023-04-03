@@ -101,7 +101,7 @@ class Solvent(ChemistryConverter):
         super().__init__(smiles, db, mass, volume)
 
     def solvent_concentration(self, catalyst: Catalyst) -> float:
-        return self.volume / catalyst.mass
+        return (self.volume / catalyst.mass)
 class Additive(ChemistryConverter):
     def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):
         super().__init__(smiles, db, mass, volume)
