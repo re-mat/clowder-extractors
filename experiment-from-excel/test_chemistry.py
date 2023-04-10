@@ -13,6 +13,7 @@ gc2 = "CC1=CC(=C(C(=C1)C)N2CCN(C2=[Ru](=CC3=CC=CC=C3)(Cl)Cl)C4=C(C=C(C=C4C)C)C)C
 mn1 = "CC1=CC=CC2=CC=CC=C12"
 fumed_si = "O=[Si]=O"
 pbd = "C{-}C=CC{n+}"
+abc = "C{-}C=CC{n+}"
 
 @fixture
 def db():
@@ -48,6 +49,12 @@ def test_converter_bad_values(db):
 
     with pytest.raises(ValueError):
         ChemistryConverter(dicyclopentadiene, db, volume=100, mass=200)
+    
+    with pytest.raises(ValueError) as excinfo:
+        db = ChemDB()
+        ChemistryConverter("", db, mass=10, volume=None)
+    assert str(excinfo.value) == "Smiles field must be specified"
+    
 
 
 def test_moles(db):

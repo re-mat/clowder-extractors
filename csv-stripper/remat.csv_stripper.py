@@ -11,6 +11,8 @@ import requests
 from pyclowder.extractors import Extractor
 from pyclowder.utils import CheckMessage
 import pyclowder.files
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def is_float(element: any) -> bool:
@@ -93,8 +95,26 @@ class CSVStripper(Extractor):
                 parameters = extract_parameters(
                     resource['local_paths'][0],
                     dsc_file)
+            
+            # Plotting Normalized Heat Flow vs. Temperature graph
+            df = pd.read_csv(dsc_file_path)
+            df.columns = ["Temperature", "Heat Flow (Normalized)", "Heat Flow"]
+            temperature = df['Temperature']
+            heat_flow = df['Heat Flow (Normalized)']
+            
+            # Plot graph
+            plt.plot(temperature, heat_flow)
 
-            logger.debug(parameters)
+            # Add axis labels and title
+            plt.xlabel("Temperature")
+            plt.ylabel("Normalized Heat Flow")
+            plt.title("Normalized Heat Flow vs. Temperature")
+
+            graph_file_path = os.path.join(tmpdirname, "DSC_Curve.svg")
+            plt.savefig(graph_file_path, format='svg')
+            
+            # Close the plot
+            plt.close()
 
             # Upload the stripped CSV file
             uploaded_id = pyclowder.files.upload_to_dataset(connector, host, secret_key,

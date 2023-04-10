@@ -17,43 +17,90 @@ def microliters_to_milli(value):
     else:
         return value
 
+def mass_volume_conversion(value):
+    if value == "-":
+        return None 
+    return value
+
+def find_mass_column(row):
+    if "Measured mass (g)" in row:
+        return "Measured mass (g)"
+    elif "Measured mass (mg)" in row:
+        return "Measured mass (mg)"
+    else:
+        return None
+
+def find_volume_column(row):
+    if "Measured volume (μL)" in row:
+        return "Measured volume (μL)"
+
+def is_row_empty(row):
+
+    mass_key = find_mass_column(row)
+    volume_key = find_volume_column(row)
+
+    smiles = row["SMILES"] if row["SMILES"] else None
+    name = row["Name"] if row["Name"] else None
+    mass = mass_volume_conversion(row[mass_key]) if mass_key else None 
+    volume = mass_volume_conversion(row[volume_key]) if volume_key else None
+
+    if name and smiles:
+        if mass and volume:
+            raise ValueError('Only specify one of mass or volume')
+        elif not mass and not volume:
+            raise ValueError('Volume or mass must be specified')
+    
+    if mass_key and volume_key:
+        if not name and not smiles and not mass and not volume:
+            return True
+    elif mass_key:
+        if not name and not smiles and not mass:
+            return True
+    elif volume_key:
+        if not name and not smiles and not volume:
+            return True
+
+    if not all([row["Name"], row["SMILES"]]):
+        raise ValueError('Missing Name or SMILES')
+
+    return False
+
 def compute_values(inputs: dict):
     # First, create lists of input-specific chemistry converters with the observed values
     db = ChemDB()
-
     db.exists([compound["SMILES"] for compound in inputs['monomers']])
     monomers = {compound["SMILES"]:
-        Monomer(compound["SMILES"], db, compound["Measured mass (g)"],
-                 microliters_to_milli(compound["Measured volume (μL)"])) for compound in inputs['monomers']}
+        Monomer(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (g)"]),
+                 microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in inputs['monomers']}
 
     print(monomers)
 
-    db.exists([compound["SMILES"] for compound in inputs['catalysts']])
+    db.exists([compound["SMILES"] for compound in inputs['catalysts']] )
     catalysts = {compound["SMILES"]:
-                     Catalyst(compound["SMILES"], db, compound["Measured mass (mg)"] / 1000.0,
+                     Catalyst(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (mg)"]) / 1000.0,
                               None) for compound in inputs['catalysts']}
     print(catalysts)
 
     db.exists([compound["SMILES"] for compound in inputs['inhibitors']])
     inhibitors = {compound["SMILES"]:
                       Inhibitor(compound["SMILES"], db, None,
-                                compound["Measured volume (μL)"]) for compound in
+                                mass_volume_conversion(compound["Measured volume (μL)"])) for compound in
                   inputs['inhibitors']
                   }
     print(inhibitors)
 
     db.exists([compound["SMILES"] for compound in inputs['additives']])
     additives = {compound["SMILES"]:
-                     Additive(compound["SMILES"], db, compound["Measured mass (g)"],
-                              compound["Measured volume (μL)"]) for compound in
+                     Additive(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (g)"]),
+                              mass_volume_conversion(compound["Measured volume (μL)"])) for compound in
                  inputs['additives']
                  }
-    print(additives)
+    print("additives", additives)
 
     db.exists([compound["SMILES"] for compound in inputs['solvents']])
     solvents = {compound["SMILES"]:
-                    Solvent(compound["SMILES"], db, compound["Measured mass (mg)"],
-                            microliters_to_milli(compound["Measured volume (μL)"])) for compound in
+                    Solvent(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (mg)"]),
+                            microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in
                 inputs['solvents']}
     print(solvents)
 
@@ -138,8 +185,15 @@ def read_inputs_from_worksheet(ws: Worksheet) -> dict:
     headers = [col.value for col in list(ws.rows)[0]]
     for row in ws.iter_rows(min_row=2):
         input_properties = {key: cell.value for key, cell in zip(headers, row)}
-        if input_properties["SMILES"]:
-            inputs.append(input_properties)
+        # if input_properties["SMILES"]:
+        #     inputs.append(input_properties)
+
+        try:
+            if not is_row_empty(input_properties):
+                inputs.append(input_properties)
+        except ValueError as e:
+            print(f"Skipping row {input_properties}: {e}")
+            continue
 
     return inputs
 
@@ -245,6 +299,7 @@ class ExperimentFromExcel(Extractor):
 
 
 if __name__ == "__main__":
-    extractor = ExperimentFromExcel()
-    extractor.start()
-    # print(json.dumps(excel_to_json("/Users/bengal1/Downloads/data_entry v2.xlsx"), default=str, ensure_ascii=False))
+    # extractor = ExperimentFromExcel()
+    # extractor.start()
+    # excel_to_json("/Users/sakshitayal/Downloads/data_entry v2.xlsx")
+    print(json.dumps(excel_to_json("/Users/sakshitayal/Downloads/data_entry v3.xlsx"), default=str, ensure_ascii=False))
