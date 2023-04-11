@@ -47,9 +47,6 @@ class ChemistryConverter:
         self.density = db.density(smiles)
         self.volume = volume
 
-        mass = None if mass == "-" else mass
-        volume = None if volume == "-" else volume
-
         if mass:
             self.mass = mass
         else:
