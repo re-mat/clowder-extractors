@@ -46,9 +46,9 @@ def is_row_empty(row):
 
     if name and smiles:
         if mass and volume:
-            raise ValueError('Only specify one of mass or volume')
+            raise ValueError('Only specify one of mass or volume in '+str(row))
         elif not mass and not volume:
-            raise ValueError('Volume or mass must be specified')
+            raise ValueError('Volume or mass must be specified in '+str(row))
     
     if mass_key and volume_key:
         if not name and not smiles and not mass and not volume:
@@ -61,7 +61,7 @@ def is_row_empty(row):
             return True
 
     if not all([row["Name"], row["SMILES"]]):
-        raise ValueError('Missing Name or SMILES')
+        raise ValueError('Missing Name or SMILES in '+str(row))
 
     return False
 
@@ -181,20 +181,14 @@ def compute_values(inputs: dict):
     inputs["additives"] = additive2
     inputs["solvents"] = solvents2
 
-def read_inputs_from_worksheet(ws: Worksheet) -> dict:
+def read_inputs_from_worksheet(ws: Worksheet) -> list[dict]:
     inputs = []
     headers = [col.value for col in list(ws.rows)[0]]
     for row in ws.iter_rows(min_row=2):
         input_properties = {key: cell.value for key, cell in zip(headers, row)}
-        # if input_properties["SMILES"]:
-        #     inputs.append(input_properties)
 
-        try:
-            if not is_row_empty(input_properties):
-                inputs.append(input_properties)
-        except ValueError as e:
-            print(f"Skipping row {input_properties}: {e}")
-            continue
+        if not is_row_empty(input_properties):
+            inputs.append(input_properties)
 
     return inputs
 
@@ -299,6 +293,6 @@ class ExperimentFromExcel(Extractor):
 
 
 if __name__ == "__main__":
-    extractor = ExperimentFromExcel()
-    extractor.start()
-    # print(json.dumps(excel_to_json("/Users/sakshitayal/Downloads/data_entry v3.xlsx"), default=str, ensure_ascii=False))
+    # extractor = ExperimentFromExcel()
+    # extractor.start()
+    print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/test_data.xlsx"), default=str, ensure_ascii=False))
