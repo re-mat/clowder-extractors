@@ -34,7 +34,7 @@ def find_volume_column(row):
     if "Measured volume (μL)" in row:
         return "Measured volume (μL)"
 
-def is_row_empty(row):
+def is_row_empty(row, input_title: str):
 
     mass_key = find_mass_column(row)
     volume_key = find_volume_column(row)
@@ -46,9 +46,9 @@ def is_row_empty(row):
 
     if name and smiles:
         if mass and volume:
-            raise ValueError('Only specify one of mass or volume in '+str(row))
+            raise ValueError(f'On {input_title} tab: Only specify one of mass or volume in '+str(row))
         elif not mass and not volume:
-            raise ValueError('Volume or mass must be specified in '+str(row))
+            raise ValueError(f'On {input_title} tab: Volume or mass must be specified in '+str(row))
     
     if mass_key and volume_key:
         if not name and not smiles and not mass and not volume:
@@ -61,7 +61,7 @@ def is_row_empty(row):
             return True
 
     if not all([row["Name"], row["SMILES"]]):
-        raise ValueError('Missing Name or SMILES in '+str(row))
+        raise ValueError(f'On {input_title} tab: Missing Name or SMILES in '+str(row))
 
     return False
 
@@ -111,6 +111,8 @@ def compute_values(inputs: dict):
         "SMILES": monomer["SMILES"],
         "Measured mass (g)": monomer["Measured mass (g)"],
         "Measured volume (μL)": monomer["Measured volume (μL)"],
+        # "Prepared in glovebox?": monomer["Prepared in glovebox?"],
+        # "Preparation temperature (°C)": monomer["Preparation temperature (°C)"],
         "Computed mass (g)": monomers[monomer["SMILES"]].mass,
         "Molecular Weight": monomers[monomer["SMILES"]].molecular_weight,
         "Moles": monomers[monomer["SMILES"]].moles(),
@@ -124,6 +126,8 @@ def compute_values(inputs: dict):
         "SMILES": catalyst["SMILES"],
         "Measured mass (mg)": catalyst["Measured mass (mg)"],
         "Computed mass (g)": catalysts[catalyst["SMILES"]].mass,
+        # "Prepared in glovebox?": catalyst["Prepared in glovebox?"],
+        # "Preparation temperature (°C)": catalyst["Preparation temperature (°C)"],
         "Molecular Weight": catalysts[catalyst["SMILES"]].molecular_weight,
         "Moles": catalysts[catalyst["SMILES"]].moles(),
         "Monomer:Catalyst molar ratio": catalysts[catalyst["SMILES"]].catalyst_monomer_molar_ratio(monomers.values())
@@ -135,6 +139,8 @@ def compute_values(inputs: dict):
         "name": inhibitor["Name"],
         "SMILES": inhibitor["SMILES"],
         "Measured volume (μL)": inhibitor["Measured volume (μL)"],
+        # "Prepared in glovebox?": inhibitor["Prepared in glovebox?"],
+        # "Preparation temperature (°C)": inhibitor["Preparation temperature (°C)"],
         "Density": inhibitors[inhibitor["SMILES"]].density,
         "Computed mass (mg)": inhibitors[inhibitor["SMILES"]].mass,
         "Molecular Weight": inhibitors[inhibitor["SMILES"]].molecular_weight,
@@ -187,7 +193,7 @@ def read_inputs_from_worksheet(ws: Worksheet) -> list[dict]:
     for row in ws.iter_rows(min_row=2):
         input_properties = {key: cell.value for key, cell in zip(headers, row)}
 
-        if not is_row_empty(input_properties):
+        if not is_row_empty(input_properties, input_title=ws.title):
             inputs.append(input_properties)
 
     return inputs
@@ -288,11 +294,12 @@ class ExperimentFromExcel(Extractor):
             }
         }
 
+        print(json.loads(json.dumps(metadata, default=str, ensure_ascii=False)))
         pyclowder.datasets.upload_metadata(connector, host, secret_key,
                                            resource['parent'].get('id', None), json.loads(json.dumps(metadata, default=str, ensure_ascii=False)))
 
 
 if __name__ == "__main__":
-    # extractor = ExperimentFromExcel()
-    # extractor.start()
-    print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/test_data.xlsx"), default=str, ensure_ascii=False))
+    extractor = ExperimentFromExcel()
+    extractor.start()
+    # print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/test_data.xlsx"), default=str, ensure_ascii=False))

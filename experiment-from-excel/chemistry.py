@@ -15,6 +15,9 @@ class ChemDB:
             for test_smiles in smiles:
                 if test_smiles and not self.exists(test_smiles):
                     raise ValueError(f"{test_smiles} not in Chemistry Database")
+                if test_smiles and \
+                    (not self.molecular_weight(test_smiles) or pandas.isna(self.molecular_weight(test_smiles))):
+                        raise  ValueError(f"{test_smiles} does not have a molecular weight in chemistry database")
             return True
 
     def density(self, smiles) -> float:
