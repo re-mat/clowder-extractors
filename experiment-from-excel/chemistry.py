@@ -15,6 +15,9 @@ class ChemDB:
             for test_smiles in smiles:
                 if test_smiles and not self.exists(test_smiles):
                     raise ValueError(f"{test_smiles} not in Chemistry Database")
+                if test_smiles and \
+                    (not self.molecular_weight(test_smiles) or pandas.isna(self.molecular_weight(test_smiles))):
+                        raise  ValueError(f"{test_smiles} does not have a molecular weight in chemistry database")
             return True
 
     def density(self, smiles) -> float:
@@ -29,19 +32,23 @@ class ChemDB:
 
 class ChemistryConverter:
     def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):
+        
+        mass = None if mass == "-" else mass
+        volume = None if volume == "-" else volume
+        
+        if not mass and not volume:
+            raise ValueError("Volume or mass must be specified")
+        
+        if not smiles:
+            raise ValueError("Smiles field must be specified")
+        
+        if mass and volume:
+            raise ValueError("Only specify one of mass or volume")
+
         self.smiles = smiles
         self.molecular_weight = db.molecular_weight(smiles)
         self.density = db.density(smiles)
         self.volume = volume
-
-        mass = None if mass == "-" else mass
-        volume = None if volume == "-" else volume
-
-        if not mass and not volume:
-            raise ValueError("Volume or mass must be specified")
-
-        if mass and volume:
-            raise ValueError("Only specify one of mass or volume")
 
         if mass:
             self.mass = mass
