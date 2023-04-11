@@ -64,6 +64,32 @@ def extract_parameters(path, stripped_file: typing.TextIO):
                 stripped_csv.writerow(row2)
     return params
 
+def make_plot(dsc_file_path, tmpdirname):
+        # Plotting Heat Flow vs. Temperature graph
+        df = pd.read_csv(dsc_file_path)
+        df.columns = ["Temperature", "Heat Flow (Normalized)", "Heat Flow"]
+        temperature = df['Temperature']
+        heat_flow = df['Heat Flow']
+
+        # Plot graph
+        plt.plot(temperature, heat_flow)
+
+        # Add axis labels and title
+        plt.xlabel("Temperature")
+        plt.ylabel("Heat Flow")
+        plt.title("Heat Flow vs. Temperature")
+
+        # Save output image files
+        plt.tight_layout()
+        graph_file_path = os.path.join(tmpdirname, "DSC_Curve.png")
+        plt.savefig(graph_file_path, format='png', dpi=300)
+        thumb_file_path = os.path.join(tmpdirname, "DSC_Curve_thumb.png")
+        plt.savefig(thumb_file_path, format='png', dpi=80)
+
+        plt.close()
+        return graph_file_path, thumb_file_path
+
+
 
 class CSVStripper(Extractor):
     def __init__(self):
@@ -97,30 +123,21 @@ class CSVStripper(Extractor):
 
             logger.debug(parameters)
 
-            # Plotting Normalized Heat Flow vs. Temperature graph
-            df = pd.read_csv(dsc_file_path)
-            df.columns = ["Temperature", "Heat Flow (Normalized)", "Heat Flow"]
-            temperature = df['Temperature']
-            heat_flow = df['Heat Flow (Normalized)']
-            
-            # Plot graph
-            plt.plot(temperature, heat_flow)
-
-            # Add axis labels and title
-            plt.xlabel("Temperature")
-            plt.ylabel("Normalized Heat Flow")
-            plt.title("Normalized Heat Flow vs. Temperature")
-
-            graph_file_path = os.path.join(tmpdirname, "DSC_Curve.svg")
-            plt.savefig(graph_file_path, format='svg')
-            
-            # Close the plot
-            plt.close()
-
             # Upload the stripped CSV file
             uploaded_id = pyclowder.files.upload_to_dataset(connector, host, secret_key,
                                                             resource['parent'].get('id', None),
                                                             dsc_file_path)
+
+            # Make a plot and thumbnail of the plot
+            graph_file_path, thumb_file_path = make_plot(dsc_file_path, tmpdirname)
+
+            # Attach to our uploaded CSV file
+            pyclowder.files.upload_preview(connector, host, secret_key, fileid=uploaded_id,
+                                           previewfile=graph_file_path, preview_mimetype="image/png")
+
+            pyclowder.files.upload_thumbnail(connector, host, secret_key,
+                                             uploaded_id, thumb_file_path)
+
 
             # Attach metadata stripped from the source file
             metadata = {
