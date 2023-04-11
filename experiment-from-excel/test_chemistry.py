@@ -49,6 +49,11 @@ def test_converter_bad_values(db):
     with pytest.raises(ValueError):
         ChemistryConverter(dicyclopentadiene, db, volume=100, mass=200)
 
+    with pytest.raises(ValueError) as excinfo:
+        db = ChemDB()
+        ChemistryConverter("", db, mass=10, volume=None)
+    assert str(excinfo.value) == "Smiles field must be specified"
+
 
 def test_moles(db):
     converter = ChemistryConverter(dicyclopentadiene, db, volume=887.0)
