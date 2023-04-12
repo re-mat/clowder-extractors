@@ -66,7 +66,7 @@ def test_monomer(db):
         Monomer(enb, db, mass=560.0)
     ]
 
-    assert round(monomers[0].monomer_mol_percent(monomers), 2) == 58.55
+    assert monomers[0].monomer_mol_percent(monomers) == 58.55
     assert round(monomers[0].monomer_volume(monomers), 2) == 1514.85
     assert round(monomers[0].average_monomer_molecular_weight(monomers), 2) == 127.23
 
@@ -77,14 +77,14 @@ def test_monomer_catalyst(db):
     ]
     catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
 
-    assert round(catalyst.catalyst_monomer_molar_ratio(monomers), 2) == 1.71
+    assert catalyst.catalyst_monomer_molar_ratio(monomers) == 1.71
 
 
 def test_catalyst_inhibitor(db):
     inhibitor = Inhibitor(enb, db, volume=887.0)   
     catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
 
-    assert round(inhibitor.inhibitor_catalyst_molar_ratio(catalyst), 2) == 1.0 
+    assert inhibitor.inhibitor_catalyst_molar_ratio(catalyst) == 1.0 
 
 def test_additives(db):
     monomers = [
@@ -99,7 +99,7 @@ def test_additives(db):
     ]
     solvent = Solvent(enb, db, volume=887.0)   
 
-    assert round(additives[0].additive_weight_percent(additives, monomers, catalyst, inhibitor, solvent), 2) == 3884.79
+    assert additives[0].additive_weight_percent(additives, monomers, catalyst, inhibitor, solvent) == 3884.79
     assert round(additives[0].additive_volume_total(additives), 2) == 1514.85
 
 def test_additives_converter(db):
@@ -116,7 +116,7 @@ def test_additives_converter(db):
     ]
     solvent = Solvent(enb, db, volume=887.0)   
 
-    assert round(additives[0].additive_weight_percent(additives, monomers, catalyst, solvent), 2) == 11.25
+    assert additives[0].additive_weight_percent(additives, monomers, catalyst, solvent) == 11.25
     
 def test_filler_volume(db):
     additives = [
@@ -146,7 +146,7 @@ def test_solvent_volume(db):
     solvent =  Solvent(enb, db, volume=887.0)   
     catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
 
-    assert round(solvent.solvent_concentration(catalyst), 2) == 1.02
+    assert solvent.solvent_concentration(catalyst) == 1.02
 
 
 def test_total_volume(db):
@@ -180,8 +180,8 @@ def test_derived_values(db):
         Additive(pbd, db, mass=0.12)
     ]
 
-    assert round(monomers[0].monomer_mol_percent(monomers), 2) == 94.56
-    assert round(monomers[1].monomer_mol_percent(monomers), 2) == 5.44
-    assert round(catalyst.catalyst_monomer_molar_ratio(monomers), 2) == 9997.09
+    assert monomers[0].monomer_mol_percent(monomers) == 94.56
+    assert monomers[1].monomer_mol_percent(monomers) == 5.44
+    assert catalyst.catalyst_monomer_molar_ratio(monomers) == 9997.09
     # assert round(solvent.solvent_concentration(catalyst), 2) == 0.02
-    assert round(additives[1].additive_weight_percent(additives, monomers, catalyst, solvent), 2) == 0.03
+    assert additives[1].additive_weight_percent(additives, monomers, catalyst, solvent) == 0.03

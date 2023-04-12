@@ -73,7 +73,8 @@ class Monomer(ChemistryConverter):
 
     def monomer_mol_percent(self, monomers: list) -> float:
         denominator = sum([monomer.moles() for monomer in monomers])
-        return (self.moles() / denominator) * 100.0
+        monomer_mol_percent = (self.moles() / denominator) * 100.0
+        return round(monomer_mol_percent, 2)
     
     def monomer_volume(self, monomers: list) -> float:
         return sum([monomer.m_volume() for monomer in monomers]) 
@@ -93,29 +94,31 @@ class Catalyst(ChemistryConverter):
     def catalyst_monomer_molar_ratio(self, monomers: list) -> float:
         sum_m_i = sum([monomer.mass for monomer in monomers])
         numerator = sum_m_i / Monomer.average_monomer_molecular_weight(self, monomers)
-        return numerator / (self.mass / self.molecular_weight)
-
+        catalyst_monomer_molar_ratio = numerator / (self.mass / self.molecular_weight)
+        return round(catalyst_monomer_molar_ratio, 2)
 class Inhibitor(ChemistryConverter):
     def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):
         super().__init__(smiles, db, mass, volume)
     
     def inhibitor_catalyst_molar_ratio(self, catalyst: Catalyst) -> float:
         denominator = catalyst.mass / catalyst.molecular_weight
-        return ((self.volume * self.density)/ self.molecular_weight) / denominator
-
+        inhibitor_catalyst_molar_ratio = ((self.volume * self.density)/ self.molecular_weight) / denominator
+        return round(inhibitor_catalyst_molar_ratio, 2)
 class Solvent(ChemistryConverter):
     def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):
         super().__init__(smiles, db, mass, volume)
 
     def solvent_concentration(self, catalyst: Catalyst) -> float:
-        return self.volume / catalyst.mass
+        solvent_concentration = self.volume / catalyst.mass
+        return round(solvent_concentration, 2)
 class Additive(ChemistryConverter):
     def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):
         super().__init__(smiles, db, mass, volume)
 
     def additive_weight_percent(self, additives: list, monomers: list, catalyst: Catalyst, solvent: Solvent) -> float:
         sum_m_i = sum([monomer.mass for monomer in monomers])
-        return self.mass/(sum_m_i + sum([additive.mass for additive in additives]) + catalyst.mass + ( solvent.volume * solvent.density)) * 100.0
+        additive_weight_percent = self.mass/(sum_m_i + sum([additive.mass for additive in additives]) + catalyst.mass + ( solvent.volume * solvent.density)) * 100.0
+        return round(additive_weight_percent, 2)
     
     def additive_volume_total(self, additives: list) -> float: 
         return sum([additive.volume if additive.volume else (additive.mass/additive.density) for additive in additives])

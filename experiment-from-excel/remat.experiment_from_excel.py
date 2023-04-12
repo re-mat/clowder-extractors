@@ -115,7 +115,7 @@ def compute_values(inputs: dict):
         "Preparation temperature (°C)": monomer["Preparation temperature (°C)"],
         "Computed mass (g)": monomers[monomer["SMILES"]].mass,
         "Molecular Weight": monomers[monomer["SMILES"]].molecular_weight,
-        "Moles": monomers[monomer["SMILES"]].moles(),
+        "Moles": round(monomers[monomer["SMILES"]].moles(), 2),
         "Monomer mol%": monomers[monomer["SMILES"]].monomer_mol_percent(monomers.values())
     }
         for monomer in inputs["monomers"]]
@@ -129,7 +129,7 @@ def compute_values(inputs: dict):
         "Prepared in glovebox?": catalyst["Prepared in glovebox?"],
         "Preparation temperature (°C)": catalyst["Preparation temperature (°C)"],
         "Molecular Weight": catalysts[catalyst["SMILES"]].molecular_weight,
-        "Moles": catalysts[catalyst["SMILES"]].moles(),
+        "Moles": round(catalysts[catalyst["SMILES"]].moles(), 2),
         "Monomer:Catalyst molar ratio": catalysts[catalyst["SMILES"]].catalyst_monomer_molar_ratio(monomers.values())
     }
         for catalyst in inputs["catalysts"]]
@@ -144,7 +144,7 @@ def compute_values(inputs: dict):
         "Density": inhibitors[inhibitor["SMILES"]].density,
         "Computed mass (mg)": inhibitors[inhibitor["SMILES"]].mass,
         "Molecular Weight": inhibitors[inhibitor["SMILES"]].molecular_weight,
-        "Moles": inhibitors[inhibitor["SMILES"]].moles(),
+        "Moles": round(inhibitors[inhibitor["SMILES"]].moles(), 2),
         "Inhibitor:Catalyst molar ratio": inhibitors[inhibitor["SMILES"]].inhibitor_catalyst_molar_ratio(list(catalysts.values())[0])
     }
         for inhibitor in inputs["inhibitors"]]
@@ -157,7 +157,7 @@ def compute_values(inputs: dict):
         "Measured volume (μL)": additive["Measured volume (μL)"],
         "Computed mass (g)": additives[additive["SMILES"]].mass,
         "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
-        "Moles": additives[additive["SMILES"]].moles(),
+        "Moles": round(additives[additive["SMILES"]].moles(), 2),
         "Wt Percent of Additives": additives[additive["SMILES"]].additive_weight_percent(
             list(additives.values()),
             list(monomers.values()),
@@ -175,7 +175,7 @@ def compute_values(inputs: dict):
         "Measured volume (μL)": solvent["Measured volume (μL)"],
         "Computed mass (mg)": solvents[solvent["SMILES"]].mass,
         "Molecular Weight": solvents[solvent["SMILES"]].molecular_weight,
-        "Moles": solvents[solvent["SMILES"]].moles(),
+        "Moles": round(solvents[solvent["SMILES"]].moles(), 2),
         "Solvent concentration": solvents[solvent["SMILES"]].solvent_concentration(list(catalysts.values())[0])
     }
         for solvent in inputs["solvents"]]
