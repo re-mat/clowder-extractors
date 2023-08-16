@@ -113,7 +113,7 @@ def extract_parameters(path: str, dsc_file: TextIO) -> dict:
             "Sample Name": parameters['Sample']['Sample Name'],
             "Sample Mass (mg)": parameters['Sample']['Sample Mass'],
             "Reference Pan Type": parameters['Sample']['Pan Type'],
-            "Run Date": parameters['Parameters: File Parameters']['Run date'],
+            "Run Date": parameters['Parameters: File Parameters']['Run date'] if 'Run date' in parameters['Parameters: File Parameters'] else parameters['Header']['Run date'],
             "Operator": parameters['Sample']['Operator'],
 
             'Instrument Name': parameters['Parameters: Configuration']['Instrument Name'],
@@ -222,7 +222,7 @@ if __name__ == "__main__":
     # with tempfile.TemporaryDirectory() as tmpdirname:
     #     dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
     #     with open(dsc_file_path, 'w') as dsc_file:
-    #         extract_parameters("../LIMS_text_files/772023--Reid-66470-81-3_cure-0.txt", dsc_file)
+    #         extract_parameters("../LIMS_text_files/95_5 dcpd_enb 100ppmgc2_10eqtbp - visc_evolution 2023-06-08 - no gelling (1).txt", dsc_file)
     #     make_plot(dsc_file_path, tmpdirname)
     #     print(tmpdirname)
     extractor = ParameterExtractor()
