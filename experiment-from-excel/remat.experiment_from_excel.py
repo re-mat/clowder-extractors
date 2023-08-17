@@ -279,6 +279,6 @@ class ExperimentFromExcel(Extractor):
 
 
 if __name__ == "__main__":
-    # extractor = ExperimentFromExcel()
-    # extractor.start()
-    print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/data_entry thermochemical.xlsx"), default=str, ensure_ascii=False))
+    extractor = ExperimentFromExcel()
+    extractor.start()
+    # print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/data_entry thermochemical.xlsx"), default=str, ensure_ascii=False))
