@@ -103,9 +103,33 @@ def extract_parameters(path: str, dsc_file: TextIO) -> dict:
 
                         stripped_csv.writerow(line.strip("\n").split("\t")[1:])
 
+    is_postcure = parameters['Analysis']['Model'] == 'Glass transition'
+
     min_temp = find_min_temp(parameters["Parameters: Experiment Logs"])
     ramp_rate, max_temp = find_max_temp_and_ramp_rate(parameters['Parameters: Experiment Logs'])
-    min_baseline_temp, max_baseline_temp = extract_baseline_temps(parameters['Analysis']['Baseline cursor x'])
+    if is_postcure:
+        min_baseline_temp = strip_units(parameters['Analysis']['Onset cursor x'])
+        max_baseline_temp = strip_units(parameters['Analysis']['End cursor x'])
+        glass_transition_temp = strip_units(parameters['Analysis']['Midpoint'])
+        analysis = {
+            "Max Heat Flow": round(max_heat_flow, 2),
+            "Min Baseline Temp": min_baseline_temp,
+            "Max Baseline Temp": max_baseline_temp,
+            "Glass transition temperature": glass_transition_temp
+        }
+    else:
+        min_baseline_temp, max_baseline_temp = extract_baseline_temps(parameters['Analysis']['Baseline cursor x'])
+        analysis = {
+            "Enthalpy (normalized)(J/g)": strip_units(
+                parameters['Analysis']['Enthalpy (normalized)']),
+            "Peak temperature (°C)": strip_units(
+                parameters['Analysis']['Peak temperature']),
+            "Onset x (°C)": strip_units(parameters['Analysis']['Onset x']),
+            "Max Heat Flow": round(max_heat_flow, 2),
+            "Min Baseline Temp": min_baseline_temp,
+            "Max Baseline Temp": max_baseline_temp
+        }
+
 
     experiment = {
         "procedure": {
@@ -125,15 +149,10 @@ def extract_parameters(path: str, dsc_file: TextIO) -> dict:
             'Ramp Min Temp (°C)': min_temp,
             'Ramp Max Temp (°C)': max_temp
         },
-        "Analysis": {
-            "Enthalpy (normalized)(J/g)": strip_units(parameters['Analysis']['Enthalpy (normalized)']),
-            "Peak temperature (°C)": strip_units(parameters['Analysis']['Peak temperature']),
-            "Onset x (°C)": strip_units(parameters['Analysis']['Onset x']),
-            "Max Heat Flow": round(max_heat_flow, 2),
-            "Min Baseline Temp": min_baseline_temp,
-            "Max Baseline Temp": max_baseline_temp
-        }
+        "Analysis": analysis
+
     }
+
     return experiment
 
 
@@ -222,7 +241,7 @@ if __name__ == "__main__":
     # with tempfile.TemporaryDirectory() as tmpdirname:
     #     dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
     #     with open(dsc_file_path, 'w') as dsc_file:
-    #         extract_parameters("../LIMS_text_files/95_5 dcpd_enb 100ppmgc2_10eqtbp - visc_evolution 2023-06-08 - no gelling (1).txt", dsc_file)
+    #         extract_parameters("../LIMS_text_files/772023--Reid-66470-81-3_cure-0.txt", dsc_file)
     #     make_plot(dsc_file_path, tmpdirname)
     #     print(tmpdirname)
     extractor = ParameterExtractor()
