@@ -212,24 +212,6 @@ def read_batch_id(wb: Workbook) -> str:
     return batch_id_cell.value
 
 
-def read_thermochemical_from_worksheet(ws: Worksheet) -> dict:
-    values = {}
-    for row in ws.iter_rows():
-        if row[0].style == "CurePhase":
-            cure_phase = row[0].value
-            values[cure_phase] = {
-                "Delta HR Baseline": {}
-            }
-        elif row[0].style == "DeltaHRBaseline":
-            pass
-        elif row[0].style == "DeltaHRBaselineVal":
-            property_name = row[0].value
-            values[cure_phase]["Delta HR Baseline"][property_name] = row[1].value
-        else:
-            property_name = row[0].value
-            values[cure_phase][property_name] = row[1].value
-    return values
-
 
 def excel_to_json(path):
     logger = logging.getLogger('__main__')
@@ -248,9 +230,7 @@ def excel_to_json(path):
     batch_id = read_batch_id(wb)
 
     for sheet in wb.sheetnames:
-        if sheet == "thermochemical":
-            thermochemical = read_thermochemical_from_worksheet(wb[sheet])
-        elif sheet == "procedure":
+        if sheet == "procedure":
             procedure = read_procedure_from_worksheet(wb[sheet])
         else:
             inputs[sheet] = read_inputs_from_worksheet(wb[sheet])
@@ -260,8 +240,7 @@ def excel_to_json(path):
     return {
         "Batch ID": batch_id,
         "procedure": procedure,
-        "inputs": inputs,
-        "thermochemical": thermochemical
+        "inputs": inputs
     }
 
 
@@ -300,6 +279,6 @@ class ExperimentFromExcel(Extractor):
 
 
 if __name__ == "__main__":
-    extractor = ExperimentFromExcel()
-    extractor.start()
-    # print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/test_data.xlsx"), default=str, ensure_ascii=False))
+    # extractor = ExperimentFromExcel()
+    # extractor.start()
+    print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/data_entry thermochemical.xlsx"), default=str, ensure_ascii=False))
