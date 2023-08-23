@@ -11,6 +11,8 @@ from openpyxl.worksheet.worksheet import Worksheet
 from pyclowder.extractors import Extractor
 from pyclowder.utils import CheckMessage
 
+moles_format = '{:.2e}'
+
 def microliters_to_milli(value):
     if value and value != "-":
         return float(value)/1000.0
@@ -85,7 +87,7 @@ def compute_values(inputs: dict):
     db.exists([compound["SMILES"] for compound in inputs['inhibitors']])
     inhibitors = {compound["SMILES"]:
                       Inhibitor(compound["SMILES"], db, None,
-                                mass_volume_conversion(compound["Measured volume (μL)"])) for compound in
+                                microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in
                   inputs['inhibitors']
                   }
     print(inhibitors)
@@ -93,7 +95,7 @@ def compute_values(inputs: dict):
     db.exists([compound["SMILES"] for compound in inputs['additives']])
     additives = {compound["SMILES"]:
                      Additive(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (g)"]),
-                              mass_volume_conversion(compound["Measured volume (μL)"])) for compound in
+                              microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in
                  inputs['additives']
                  }
     print(additives)
@@ -115,7 +117,7 @@ def compute_values(inputs: dict):
         "Preparation temperature (°C)": monomer["Preparation temperature (°C)"],
         "Computed mass (g)": monomers[monomer["SMILES"]].mass,
         "Molecular Weight": monomers[monomer["SMILES"]].molecular_weight,
-        "Moles": round(monomers[monomer["SMILES"]].moles(), 2),
+        "Moles": moles_format.format(monomers[monomer["SMILES"]].moles()),
         "Monomer mol%": monomers[monomer["SMILES"]].monomer_mol_percent(monomers.values())
     }
         for monomer in inputs["monomers"]]
@@ -129,7 +131,7 @@ def compute_values(inputs: dict):
         "Prepared in glovebox?": catalyst["Prepared in glovebox?"],
         "Preparation temperature (°C)": catalyst["Preparation temperature (°C)"],
         "Molecular Weight": catalysts[catalyst["SMILES"]].molecular_weight,
-        "Moles": round(catalysts[catalyst["SMILES"]].moles(), 2),
+        "Moles": moles_format.format(catalysts[catalyst["SMILES"]].moles()),
         "Monomer:Catalyst molar ratio": catalysts[catalyst["SMILES"]].catalyst_monomer_molar_ratio(monomers.values())
     }
         for catalyst in inputs["catalysts"]]
@@ -144,7 +146,7 @@ def compute_values(inputs: dict):
         "Density": inhibitors[inhibitor["SMILES"]].density,
         "Computed mass (mg)": inhibitors[inhibitor["SMILES"]].mass,
         "Molecular Weight": inhibitors[inhibitor["SMILES"]].molecular_weight,
-        "Moles": round(inhibitors[inhibitor["SMILES"]].moles(), 2),
+        "Moles": moles_format.format(inhibitors[inhibitor["SMILES"]].moles()),
         "Inhibitor:Catalyst molar ratio": inhibitors[inhibitor["SMILES"]].inhibitor_catalyst_molar_ratio(list(catalysts.values())[0])
     }
         for inhibitor in inputs["inhibitors"]]
@@ -157,7 +159,7 @@ def compute_values(inputs: dict):
         "Measured volume (μL)": additive["Measured volume (μL)"],
         "Computed mass (g)": additives[additive["SMILES"]].mass,
         "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
-        "Moles": round(additives[additive["SMILES"]].moles(), 2),
+        "Moles": moles_format.format(additives[additive["SMILES"]].moles()),
         "Wt Percent of Additives": additives[additive["SMILES"]].additive_weight_percent(
             list(additives.values()),
             list(monomers.values()),
@@ -175,7 +177,7 @@ def compute_values(inputs: dict):
         "Measured volume (μL)": solvent["Measured volume (μL)"],
         "Computed mass (mg)": solvents[solvent["SMILES"]].mass,
         "Molecular Weight": solvents[solvent["SMILES"]].molecular_weight,
-        "Moles": round(solvents[solvent["SMILES"]].moles(), 2),
+        "Moles": moles_format.format(solvents[solvent["SMILES"]].moles()),
         "Solvent concentration": solvents[solvent["SMILES"]].solvent_concentration(list(catalysts.values())[0])
     }
         for solvent in inputs["solvents"]]
@@ -281,4 +283,4 @@ class ExperimentFromExcel(Extractor):
 if __name__ == "__main__":
     extractor = ExperimentFromExcel()
     extractor.start()
-    # print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/data_entry thermochemical.xlsx"), default=str, ensure_ascii=False))
+    # print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/small_moles.xlsx")['inputs']['inhibitors'], default=str, ensure_ascii=False))
