@@ -1,3 +1,5 @@
+from enum import Enum
+
 import pandas
 
 class ChemDB:
@@ -133,6 +135,22 @@ class Additive(ChemistryConverter):
 
     def total_volume(self, additives: list, monomers: list, inhibitor: Inhibitor, solvent: Solvent):
         return self.additive_volume_total(additives) + Monomer.monomer_volume(self, monomers) + inhibitor.volume + solvent.volume
+
+class Initiator(ChemistryConverter):
+    class InitiatorRole(Enum):
+        Catalyst = "Catalyst"
+        Solvent = "Solvent"
+
+    def __init__(self, smiles: str, db: ChemDB, role: InitiatorRole=None,
+                 mass=None, volume=None):
+        super().__init__(smiles, db, mass, volume)
+
+        # We can assume that if the amount is specified as volume then it is
+        # a solvent, otherwise it is a catalyst
+        self.role = role if role \
+            else Initiator.InitiatorRole.Solvent \
+            if volume else Initiator.InitiatorRole.Catalyst
+
 
 if __name__ == "__main__":
     c = ChemDB()

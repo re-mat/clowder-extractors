@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import json
+from typing import Tuple, List, Dict
 
-from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive
+from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive, Initiator
 import logging
 
 import pyclowder.files
@@ -38,6 +39,9 @@ def find_volume_column(row):
 
 def is_row_empty(row, input_title: str):
 
+    if not "SMILES" in row:
+        return True
+
     mass_key = find_mass_column(row)
     volume_key = find_volume_column(row)
 
@@ -67,45 +71,56 @@ def is_row_empty(row, input_title: str):
 
     return False
 
-def compute_values(inputs: dict):
+def compute_values(inputs: dict, inputs_procedure: dict):
     # First, create lists of input-specific chemistry converters with the observed values
     db = ChemDB()
 
+    # MONOMERS
     db.exists([compound["SMILES"] for compound in inputs['monomers']])
     monomers = {compound["SMILES"]:
         Monomer(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (g)"]),
                  microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in inputs['monomers']}
 
-    print(monomers)
 
+    # CATALYSTS
     db.exists([compound["SMILES"] for compound in inputs['catalysts']])
     catalysts = {compound["SMILES"]:
                      Catalyst(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (mg)"]) / 1000.0,
                               None) for compound in inputs['catalysts']}
-    print(catalysts)
 
+    # INHIBITORS
     db.exists([compound["SMILES"] for compound in inputs['inhibitors']])
     inhibitors = {compound["SMILES"]:
                       Inhibitor(compound["SMILES"], db, None,
                                 microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in
                   inputs['inhibitors']
                   }
-    print(inhibitors)
 
+    # ADDITIVES
     db.exists([compound["SMILES"] for compound in inputs['additives']])
     additives = {compound["SMILES"]:
                      Additive(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (g)"]),
                               microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in
                  inputs['additives']
                  }
-    print(additives)
 
+    # SOLVENTS
     db.exists([compound["SMILES"] for compound in inputs['solvents']])
     solvents = {compound["SMILES"]:
                     Solvent(compound["SMILES"], db, mass_volume_conversion(compound["Measured mass (mg)"]),
                             microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in
                 inputs['solvents']}
-    print(solvents)
+
+    # INITIATORS
+    db.exists([compound["SMILES"] for compound in inputs['chemical initiation']])
+    initiators = {compound["SMILES"]:
+                    Initiator(compound["SMILES"], db,
+                              mass=mass_volume_conversion(compound["Measured mass (mg)"]),
+                              volume=microliters_to_milli(mass_volume_conversion(compound["Measured volume (μL)"]))) for compound in
+                inputs['chemical initiation']}
+
+    total_initiator_catalyst_moles = sum(initiator.moles() for initiator in initiators.values() if initiator.role==Initiator.InitiatorRole.Catalyst)
+    total_initiator_solvent_moles = sum(initiator.moles() for initiator in initiators.values() if initiator.role==Initiator.InitiatorRole.Solvent)
 
     # Now compute derived values (which requires knowledge of all of the inputs)
     monomer2 = [{
@@ -113,36 +128,28 @@ def compute_values(inputs: dict):
         "SMILES": monomer["SMILES"],
         "Measured mass (g)": monomer["Measured mass (g)"],
         "Measured volume (μL)": monomer["Measured volume (μL)"],
-        "Prepared in glovebox?": monomer["Prepared in glovebox?"],
-        "Preparation temperature (°C)": monomer["Preparation temperature (°C)"],
         "Computed mass (g)": monomers[monomer["SMILES"]].mass,
         "Molecular Weight": monomers[monomer["SMILES"]].molecular_weight,
         "Moles": moles_format.format(monomers[monomer["SMILES"]].moles()),
         "Monomer mol%": monomers[monomer["SMILES"]].monomer_mol_percent(monomers.values())
     }
         for monomer in inputs["monomers"]]
-    print("monomer2 --->", monomer2)
 
     catalyst2 = [{
         "name": catalyst["Name"],
         "SMILES": catalyst["SMILES"],
         "Measured mass (mg)": catalyst["Measured mass (mg)"],
         "Computed mass (g)": catalysts[catalyst["SMILES"]].mass,
-        "Prepared in glovebox?": catalyst["Prepared in glovebox?"],
-        "Preparation temperature (°C)": catalyst["Preparation temperature (°C)"],
         "Molecular Weight": catalysts[catalyst["SMILES"]].molecular_weight,
         "Moles": moles_format.format(catalysts[catalyst["SMILES"]].moles()),
         "Monomer:Catalyst molar ratio": catalysts[catalyst["SMILES"]].catalyst_monomer_molar_ratio(monomers.values())
     }
         for catalyst in inputs["catalysts"]]
-    print("catalyst2 --->", catalyst2)
 
     inhibitor2 = [{
         "name": inhibitor["Name"],
         "SMILES": inhibitor["SMILES"],
         "Measured volume (μL)": inhibitor["Measured volume (μL)"],
-        "Prepared in glovebox?": inhibitor["Prepared in glovebox?"],
-        "Preparation temperature (°C)": inhibitor["Preparation temperature (°C)"],
         "Density": inhibitors[inhibitor["SMILES"]].density,
         "Computed mass (mg)": inhibitors[inhibitor["SMILES"]].mass,
         "Molecular Weight": inhibitors[inhibitor["SMILES"]].molecular_weight,
@@ -150,7 +157,6 @@ def compute_values(inputs: dict):
         "Inhibitor:Catalyst molar ratio": inhibitors[inhibitor["SMILES"]].inhibitor_catalyst_molar_ratio(list(catalysts.values())[0])
     }
         for inhibitor in inputs["inhibitors"]]
-    print("inhibitor2 --->", inhibitor2)
 
     additive2 = [{
         "name": additive["Name"],
@@ -167,8 +173,6 @@ def compute_values(inputs: dict):
             list(solvents.values())[0])
     }
         for additive in inputs["additives"]]
-    print("additive2 --->", additive2)
-
 
     solvents2 = [{
         "name": solvent["Name"],
@@ -181,24 +185,72 @@ def compute_values(inputs: dict):
         "Solvent concentration": solvents[solvent["SMILES"]].solvent_concentration(list(catalysts.values())[0])
     }
         for solvent in inputs["solvents"]]
-    print("solvents2 --->", solvents2)
 
-    inputs['monomers'] = monomer2
-    inputs["catalysts"] = catalyst2
-    inputs["inhibitors"] = inhibitor2
-    inputs["additives"] = additive2
-    inputs["solvents"] = solvents2
+    chemical_initiation2 = [{
+        "name": chemical_initiation["Name"],
+        "SMILES": chemical_initiation["SMILES"],
+        "Role": initiators[chemical_initiation["SMILES"]].role.value,
+        "Measured mass (mg)": chemical_initiation["Measured mass (mg)"],
+        "Measured volume (μL)": chemical_initiation["Measured volume (μL)"],
+        "Computed mass (mg)": initiators[chemical_initiation["SMILES"]].mass,
+        "Molecular Weight": initiators[chemical_initiation["SMILES"]].molecular_weight,
+        "Moles": moles_format.format(initiators[chemical_initiation["SMILES"]].moles())
+    }
+        for chemical_initiation in inputs['chemical initiation']]
 
-def read_inputs_from_worksheet(ws: Worksheet) -> list[dict]:
+    inputs['monomers'] = {
+        "monomer-inputs": monomer2,
+        "monomer-procedure": inputs_procedure["monomers"]
+    }
+
+    inputs['catalysts'] = {
+        "catalyst-inputs": catalyst2,
+        "catalyst-procedure": inputs_procedure["catalysts"]
+    }
+
+    inputs['inhibitors'] = {
+        "inhibitor-inputs": inhibitor2,
+        "inhibitor-procedure": inputs_procedure["inhibitors"]
+    }
+
+    inputs['additives'] = {
+        "additive-inputs": additive2,
+        "additive-procedure": inputs_procedure["additives"]
+    }
+
+    inputs['solvents'] = {
+        "solvent-inputs": solvents2,
+        "solvent-procedure": inputs_procedure["solvents"]
+    }
+
+    inputs['initiators'] = {
+        "initiator-catalyst-solvent-ratio": total_initiator_catalyst_moles / total_initiator_solvent_moles,
+        "initiator-inputs": chemical_initiation2,
+        "initiator-procedure": inputs_procedure["chemical initiation"]
+    }
+
+def read_inputs_from_worksheet(ws: Worksheet) -> Tuple[List[Dict], Dict]:
+    # The inputs sheets contain rows of inputs and then a procedure block
+    # that applies to all of the inputs of that type
     inputs = []
+    procedure = {}
+    inside_procedure_block = False
     headers = [col.value for col in list(ws.rows)[0]]
     for row in ws.iter_rows(min_row=2):
-        input_properties = {key: cell.value for key, cell in zip(headers, row)}
+        if row[0].value == "PROCEDURE":
+            inside_procedure_block = True
+            continue
 
-        if not is_row_empty(input_properties, input_title=ws.title):
-            inputs.append(input_properties)
+        if not inside_procedure_block:
+            input_properties = {key: cell.value for key, cell in zip(headers, row)}
 
-    return inputs
+            if not is_row_empty(input_properties, input_title=ws.title):
+                inputs.append(input_properties)
+        else:
+            if row[0].value:
+                procedure[row[0].value] = row[1].value
+
+    return inputs, procedure
 
 def read_procedure_from_worksheet(ws: Worksheet) -> dict:
     procedure = {}
@@ -224,20 +276,26 @@ def excel_to_json(path):
                   in wb.custom_doc_props.props
                   if prop.name == "File Version"][0]
 
-    if ss_version != "1.0":
+    if ss_version != "3.0":
         logger.error(f"This extractor is not compatible with spreadsheet version {ss_version}")
         return {}
 
     inputs = {}
     batch_id = read_batch_id(wb)
-
+    procedure = {}
+    inputs_procedure = {}
+    # There are multiple sheets in this workbook. Some describe the inputs some
+    # are just procedure. The Geometry sheet is just a library of geometries
     for sheet in wb.sheetnames:
-        if sheet == "procedure":
-            procedure = read_procedure_from_worksheet(wb[sheet])
+        if sheet == "geometries":
+            pass # This sheet is just a library of geometries
+        elif sheet in ["procedure", "thermal initiation", "photo initiation", "photo control"]:
+            procedure.update(read_procedure_from_worksheet(wb[sheet]))
         else:
-            inputs[sheet] = read_inputs_from_worksheet(wb[sheet])
+            # The inputs sheets have both the list of inputs and procedure data
+            inputs[sheet], inputs_procedure[sheet] = read_inputs_from_worksheet(wb[sheet])
 
-    compute_values(inputs)
+    compute_values(inputs, inputs_procedure)
 
     return {
         "Batch ID": batch_id,
@@ -275,7 +333,7 @@ class ExperimentFromExcel(Extractor):
             }
         }
 
-        print(json.loads(json.dumps(metadata, default=str, ensure_ascii=False)))
+        print(json.loads(json.dumps(metadata, default=str, ensure_ascii=False, indent=4)))
         pyclowder.datasets.upload_metadata(connector, host, secret_key,
                                            resource['parent'].get('id', None), json.loads(json.dumps(metadata, default=str, ensure_ascii=False)))
 
@@ -283,4 +341,6 @@ class ExperimentFromExcel(Extractor):
 if __name__ == "__main__":
     extractor = ExperimentFromExcel()
     extractor.start()
-    # print(json.dumps(excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/small_moles.xlsx")['inputs']['inhibitors'], default=str, ensure_ascii=False))
+    # print(json.dumps(
+    #     excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/Data Entry FROMP v3.xlsx"), indent=4,
+    #     default=str, ensure_ascii=False))
