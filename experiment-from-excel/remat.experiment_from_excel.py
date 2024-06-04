@@ -223,7 +223,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         "solvent-procedure": inputs_procedure["solvents"]
     }
 
-    inputs['initiators'] = {
+    inputs['chemical initiation'] = {
         "initiator-catalyst-solvent-ratio": total_initiator_catalyst_moles / total_initiator_solvent_moles,
         "initiator-inputs": chemical_initiation2,
         "initiator-procedure": inputs_procedure["chemical initiation"]
