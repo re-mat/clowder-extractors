@@ -280,8 +280,7 @@ def excel_to_json(path):
                   if prop.name == "File Version"][0]
 
     if ss_version != "3.0":
-        logger.error(f"This extractor is not compatible with spreadsheet version {ss_version}")
-        return {}
+        raise ValueError(f"This extractor is not compatible with spreadsheet version {ss_version}")
 
     inputs = {}
     batch_id = read_batch_id(wb)
@@ -367,5 +366,5 @@ if __name__ == "__main__":
     extractor = ExperimentFromExcel()
     extractor.start()
     # print(json.dumps(
-    #     excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/Data Entry FROMP v5.xlsx"), indent=4,
+    #     excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/75-24.xlsx"), indent=4,
     #     default=str, ensure_ascii=False))
