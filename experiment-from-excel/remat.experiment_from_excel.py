@@ -120,7 +120,8 @@ def compute_values(inputs: dict, inputs_procedure: dict):
                 inputs['chemical initiation']}
 
     total_initiator_catalyst_moles = sum(initiator.moles() for initiator in initiators.values() if initiator.role==Initiator.InitiatorRole.Catalyst)
-    total_initiator_solvent_moles = sum(initiator.moles() for initiator in initiators.values() if initiator.role==Initiator.InitiatorRole.Solvent)
+    total_initiator_catalyst_mg = sum(initiator.mass for initiator in initiators.values() if initiator.role==Initiator.InitiatorRole.Catalyst)
+    total_initiator_solvent_microliters = sum(initiator.volume for initiator in initiators.values() if initiator.role==Initiator.InitiatorRole.Solvent)
 
     # Now compute derived values (which requires knowledge of all of the inputs)
     monomer2 = [{
@@ -223,8 +224,10 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         "solvent-procedure": inputs_procedure["solvents"]
     }
 
+
     inputs['chemical initiation'] = {
-        "initiator-catalyst-solvent-ratio": total_initiator_catalyst_moles / total_initiator_solvent_moles,
+        "initiator-catalyst-solvent-concentration-mg/microL": total_initiator_catalyst_mg / total_initiator_solvent_microliters,
+        "initiator-catalyst-solvent-concentration-moles/L": total_initiator_catalyst_moles / (total_initiator_solvent_microliters * 10e6),
         "initiator-inputs": chemical_initiation2,
         "initiator-procedure": inputs_procedure["chemical initiation"]
     }
@@ -283,24 +286,46 @@ def excel_to_json(path):
     inputs = {}
     batch_id = read_batch_id(wb)
     procedure = {}
+    fromp_measurements = {}
     inputs_procedure = {}
+    initiation_tabs = {
+        "THERMAL": "thermal initiation",
+        "PHOTO": "photo initiation"
+    }
+
     # There are multiple sheets in this workbook. Some describe the inputs some
     # are just procedure. The Geometry sheet is just a library of geometries
     for sheet in wb.sheetnames:
         if sheet == "geometries":
             pass # This sheet is just a library of geometries
-        elif sheet in ["procedure", "thermal initiation", "photo initiation", "photo control"]:
-            procedure.update(read_procedure_from_worksheet(wb[sheet]))
+        elif sheet in ["general", "thermal initiation", "photo initiation", "photo control"]:
+            procedure[sheet]=read_procedure_from_worksheet(wb[sheet])
+        elif sheet == "FROMP Measurements":
+            fromp_measurements = read_procedure_from_worksheet(wb[sheet])
         else:
             # The inputs sheets have both the list of inputs and procedure data
             inputs[sheet], inputs_procedure[sheet] = read_inputs_from_worksheet(wb[sheet])
 
     compute_values(inputs, inputs_procedure)
 
+    # Clean up irrelevant procedure data
+    if procedure["general"]["Photocontrol?"] == "NO":
+        del procedure["photo control"]
+
+    # Remove entries for the initiation methods not used in this procedure
+    # (Chemical initiation data is under the inputs section)
+    unused_tabs = [value for key, value in initiation_tabs.items() if key != procedure["general"]["Initiation method"]]
+    for tab in unused_tabs:
+        del procedure[tab]
+
+    if procedure["general"]["Initiation method"] != "CHEMICAL":
+        del inputs["chemical initiation"]
+
     return {
         "Batch ID": batch_id,
         "procedure": procedure,
-        "inputs": inputs
+        "inputs": inputs,
+        "FROMP Measurements": fromp_measurements
     }
 
 
@@ -342,5 +367,5 @@ if __name__ == "__main__":
     extractor = ExperimentFromExcel()
     extractor.start()
     # print(json.dumps(
-    #     excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/Data Entry FROMP v3.xlsx"), indent=4,
+    #     excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/Data Entry FROMP v5.xlsx"), indent=4,
     #     default=str, ensure_ascii=False))
