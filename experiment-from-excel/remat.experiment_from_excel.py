@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import sys
 from typing import Tuple, List, Dict
 
 from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive, Initiator
@@ -319,6 +320,7 @@ def excel_to_json(path):
     if procedure["general"]["Initiation method"] != "CHEMICAL":
         del inputs["chemical initiation"]
 
+
     return {
         "Batch ID": batch_id,
         "procedure": procedure,
@@ -362,8 +364,9 @@ class ExperimentFromExcel(Extractor):
 
 
 if __name__ == "__main__":
-    extractor = ExperimentFromExcel()
-    extractor.start()
-    # print(json.dumps(
-    #     excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/Data Entry.xlsx"), indent=4,
-    #     default=str, ensure_ascii=False))
+    if len(sys.argv) == 2:
+        experiment = excel_to_json(sys.argv[1])
+        print(json.dumps(experiment, indent=4, default=str, ensure_ascii=False))
+    else:
+        extractor = ExperimentFromExcel()
+        extractor.start()
