@@ -193,7 +193,6 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         "Role": initiators[chemical_initiation["SMILES"]].role.value,
         "Measured mass (mg)": chemical_initiation["Measured mass (mg)"],
         "Measured volume (μL)": chemical_initiation["Measured volume (μL)"],
-        "Computed mass (mg)": initiators[chemical_initiation["SMILES"]].mass,
         "Molecular Weight": initiators[chemical_initiation["SMILES"]].molecular_weight,
         "Moles": moles_format.format(initiators[chemical_initiation["SMILES"]].moles())
     }
@@ -366,5 +365,5 @@ if __name__ == "__main__":
     extractor = ExperimentFromExcel()
     extractor.start()
     # print(json.dumps(
-    #     excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/75-24.xlsx"), indent=4,
+    #     excel_to_json("/Users/bengal1/dev/MDF/clowder-extractors/experiment-from-excel/Data Entry.xlsx"), indent=4,
     #     default=str, ensure_ascii=False))

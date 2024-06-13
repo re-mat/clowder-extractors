@@ -1,3 +1,4 @@
+import math
 from enum import Enum
 
 import pandas
@@ -69,6 +70,8 @@ class ChemistryConverter:
         return f"{type(self)} {self.smiles} - Mass: {self.mass}, Volume: {self.volume}, Moles {self.moles()}"
 
     def mass_from_volume(self, volume: float) -> float:
+        if math.isnan(self.density):
+            return 0.0
         return volume * self.density
 
     def moles(self) -> float:
