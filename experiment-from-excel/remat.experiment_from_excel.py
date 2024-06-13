@@ -317,7 +317,10 @@ def excel_to_json(path):
     for tab in unused_tabs:
         del procedure[tab]
 
-    if procedure["general"]["Initiation method"] != "CHEMICAL":
+    if procedure["general"]["Initiation method"] == "CHEMICAL":
+        procedure["chemical initiation"] = inputs["chemical initiation"]
+        del inputs["chemical initiation"]
+    else:
         del inputs["chemical initiation"]
 
 
