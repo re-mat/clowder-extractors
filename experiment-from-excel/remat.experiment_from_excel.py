@@ -225,12 +225,14 @@ def compute_values(inputs: dict, inputs_procedure: dict):
     }
 
 
-    inputs['chemical initiation'] = {
-        "initiator-catalyst-solvent-concentration-mg/microL": total_initiator_catalyst_mg / total_initiator_solvent_microliters,
-        "initiator-catalyst-solvent-concentration-moles/L": total_initiator_catalyst_moles / (total_initiator_solvent_microliters * 10e6),
-        "initiator-inputs": chemical_initiation2,
-        "initiator-procedure": inputs_procedure["chemical initiation"]
-    }
+    # Avoid divide by zero errors if the chemical initiation tab is not used
+    if total_initiator_solvent_microliters:
+        inputs['chemical initiation'] = {
+            "initiator-catalyst-solvent-concentration-mg/microL": total_initiator_catalyst_mg / total_initiator_solvent_microliters,
+            "initiator-catalyst-solvent-concentration-moles/L": total_initiator_catalyst_moles / (total_initiator_solvent_microliters * 10e6),
+            "initiator-inputs": chemical_initiation2,
+            "initiator-procedure": inputs_procedure["chemical initiation"]
+        }
 
 def read_inputs_from_worksheet(ws: Worksheet) -> Tuple[List[Dict], Dict]:
     # The inputs sheets contain rows of inputs and then a procedure block
