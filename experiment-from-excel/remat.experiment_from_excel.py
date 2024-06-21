@@ -294,6 +294,15 @@ def excel_to_json(path):
         "PHOTO": "photo initiation"
     }
 
+    fromp_properties=[
+        "Select Geometry from geometries tab",
+        "Geometry - Select from library",
+        "Resin height (mm)",
+        "Diameter (mm)",
+        "Thickness (mm)",
+        "Tube length (mm)",
+        "Empty-dim"
+    ]
     # There are multiple sheets in this workbook. Some describe the inputs some
     # are just procedure. The Geometry sheet is just a library of geometries
     for sheet in wb.sheetnames:
@@ -326,12 +335,22 @@ def excel_to_json(path):
         del inputs["chemical initiation"]
 
 
-    return {
+    # If not FROMP, then there is no initiation and we don't care about geometry
+    if procedure['general']['Type of polymerization'] == "NONE":
+        for fromp_property in fromp_properties:
+            procedure.pop(fromp_property, None)
+
+
+    result = {
         "Batch ID": batch_id,
         "procedure": procedure,
         "inputs": inputs,
-        "FROMP Measurements": fromp_measurements
     }
+
+    if procedure['general']['Type of polymerization'] == "FROMP":
+        result["FROMP Measurements"] = fromp_measurements
+
+    return result
 
 
 class ExperimentFromExcel(Extractor):
