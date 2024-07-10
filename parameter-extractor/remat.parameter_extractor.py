@@ -3,6 +3,7 @@ import csv
 import logging
 import os
 import re
+import sys
 import tempfile
 from typing import TextIO
 import pandas as pd
@@ -238,11 +239,13 @@ class ParameterExtractor(Extractor):
 
 
 if __name__ == "__main__":
-    # with tempfile.TemporaryDirectory() as tmpdirname:
-    #     dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
-    #     with open(dsc_file_path, 'w') as dsc_file:
-    #         extract_parameters("../LIMS_text_files/772023--Reid-66470-81-3_cure-0.txt", dsc_file)
-    #     make_plot(dsc_file_path, tmpdirname)
-    #     print(tmpdirname)
-    extractor = ParameterExtractor()
-    extractor.start()
+    if len(sys.argv) > 1:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
+            with open(dsc_file_path, 'w') as dsc_file:
+                extract_parameters(sys.argv[1], dsc_file)
+            make_plot(dsc_file_path, tmpdirname)
+            print(tmpdirname)
+    else:
+        extractor = ParameterExtractor()
+        extractor.start()
