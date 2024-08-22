@@ -159,7 +159,7 @@ def extract_parameters(path: str, dsc_file: TextIO) -> dict:
 
 def find_min_temp(log_entries: dict) -> float:
     # Find the Equilibrate log entry
-    min_temp_re = re.compile(r'Equilibrate Segment (\d+) \(C\) Started$')
+    min_temp_re = re.compile(r'Equilibrate Segment ([-+]?\d+) \(C\) Started$')
 
     equilibrate_segment = next(
         filter(lambda log_entry: min_temp_re.match(log_entry),
@@ -246,6 +246,7 @@ if __name__ == "__main__":
                 extract_parameters(sys.argv[1], dsc_file)
             make_plot(dsc_file_path, tmpdirname)
             print(tmpdirname)
+            pass
     else:
         extractor = ParameterExtractor()
         extractor.start()
