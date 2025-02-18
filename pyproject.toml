@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clowder-extractors"
+version = "0.1.0"
+description = "A collection of extractors for Clowder"
+authors = [
+  { name = "Ben Galewsky", email = "bengal1@illinois.edu" },
+]
+dependencies = [
+    "pyclowder==2.7.0",
+    "openpyxl==3.1.1",
+    "pandas",
+    "matplotlib==3.9.1",
+]
+
+
+[tool.hatch.version]
+path = "src/clowder_extractors/__init__.py"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+clowder_extractors = ["csv_stripper/extractor_info.json"]
+
+[project.scripts]
+csv_stripper = "clowder_extractors.csv_stripper.remat_csv_stripper:main"
+experiment_from_excel = "clowder_extractors.experiment_from_excel.remat_experiment_from_excel:main"
+parameter_extractor = "clowder_extractors.parameter_extractor.remat_parameter_extractor:main"
+
+[tool.flake8]
+max-line-length = 88
+exclude = ["__pycache__", ".git", ".venv"]
+
+[tool.poetry.dev-dependencies]
+flake8 = "^6.x"
+
