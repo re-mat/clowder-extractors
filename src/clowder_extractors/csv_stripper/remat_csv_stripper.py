@@ -5,7 +5,6 @@ import os
 import csv
 import tempfile
 import typing
-from tempfile import NamedTemporaryFile
 
 import requests
 from pyclowder.extractors import Extractor
@@ -14,10 +13,19 @@ import pyclowder.files
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# from clowder_extractors.parameter_extractor.remat_parameter_extractor import make_plot
+from clowder_extractors.parameter_extractor.remat_parameter_extractor import make_plot
+
+# from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import microliters_to_milli
+from clowder_extractors.experiment_from_excel.chemistry import ChemDB
+
+print("All imports done")
+
 def is_float(element: any) -> bool:
     """
     Check whether a string represents a valid floating point number
-    Copied from https://stackoverflow.com/a/20929881
+    Copied from
+    https://stackoverflow.com/a/20929881
     :param element:
     :return: boolean
     """
@@ -65,29 +73,30 @@ def extract_parameters(path, stripped_file: typing.TextIO):
     return params
 
 def make_plot(dsc_file_path, tmpdirname):
-        # Plotting Heat Flow vs. Temperature graph
-        df = pd.read_csv(dsc_file_path)
-        df.columns = ["Temperature", "Heat Flow (Normalized)", "Heat Flow"]
-        temperature = df['Temperature']
-        heat_flow = df['Heat Flow']
 
-        # Plot graph
-        plt.plot(temperature, heat_flow)
+    # Plotting Heat Flow vs. Temperature graph
+    df = pd.read_csv(dsc_file_path)
+    df.columns = ["Temperature", "Heat Flow (Normalized)", "Heat Flow"]
+    temperature = df['Temperature']
+    heat_flow = df['Heat Flow']
 
-        # Add axis labels and title
-        plt.xlabel("Temperature")
-        plt.ylabel("Heat Flow")
-        plt.title("Heat Flow vs. Temperature")
+    # Plot graph
+    plt.plot(temperature, heat_flow)
 
-        # Save output image files
-        plt.tight_layout()
-        graph_file_path = os.path.join(tmpdirname, "DSC_Curve.png")
-        plt.savefig(graph_file_path, format='png', dpi=300)
-        thumb_file_path = os.path.join(tmpdirname, "DSC_Curve_thumb.png")
-        plt.savefig(thumb_file_path, format='png', dpi=80)
+    # Add axis labels and title
+    plt.xlabel("Temperature")
+    plt.ylabel("Heat Flow")
+    plt.title("Heat Flow vs. Temperature")
 
-        plt.close()
-        return graph_file_path, thumb_file_path
+    # Save output image files
+    plt.tight_layout()
+    graph_file_path = os.path.join(tmpdirname, "DSC_Curve.png")
+    plt.savefig(graph_file_path, format='png', dpi=300)
+    thumb_file_path = os.path.join(tmpdirname, "DSC_Curve_thumb.png")
+    plt.savefig(thumb_file_path, format='png', dpi=80)
+
+    plt.close()
+    return graph_file_path, thumb_file_path
 
 
 
@@ -157,6 +166,11 @@ class CSVStripper(Extractor):
                               description=parameters['proceduresegments'])
 
 
-if __name__ == "__main__":
+def main():
     extractor = CSVStripper()
-    extractor.start()
+    # extractor.start()
+    cdb = ChemDB()
+    print("Extractor started", cdb)
+
+if __name__ == "__main__":
+    main()

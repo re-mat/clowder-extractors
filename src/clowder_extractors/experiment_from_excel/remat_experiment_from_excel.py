@@ -3,7 +3,8 @@ import json
 import sys
 from typing import Tuple, List, Dict
 
-from chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive, Initiator
+# from .chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive, Initiator
+from clowder_extractors.experiment_from_excel.chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive, Initiator
 import logging
 
 import pyclowder.files
@@ -34,9 +35,11 @@ def find_mass_column(row):
     else:
         return None
 
+
 def find_volume_column(row):
     if "Measured volume (μL)" in row:
         return "Measured volume (μL)"
+
 
 def is_row_empty(row, input_title: str):
 
@@ -387,10 +390,15 @@ class ExperimentFromExcel(Extractor):
                                            resource['parent'].get('id', None), json.loads(json.dumps(metadata, default=str, ensure_ascii=False)))
 
 
-if __name__ == "__main__":
+def main():
     if len(sys.argv) == 2:
+        print("Extracting experiment from excel file")
         experiment = excel_to_json(sys.argv[1])
         print(json.dumps(experiment, indent=4, default=str, ensure_ascii=False))
     else:
         extractor = ExperimentFromExcel()
         extractor.start()
+
+if __name__ == "__main__":
+    main()
+

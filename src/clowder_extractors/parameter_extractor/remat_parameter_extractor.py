@@ -13,6 +13,8 @@ import pyclowder.files
 from pyclowder.extractors import Extractor
 from pyclowder.utils import CheckMessage
 
+from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import find_volume_column
+# from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import compute_values
 
 def make_plot(dsc_file_path, tmpdirname):
     # Plotting Heat Flow vs. Temperature graph
@@ -238,15 +240,20 @@ class ParameterExtractor(Extractor):
                                            resource['parent'].get('id', None), metadata)
 
 
-if __name__ == "__main__":
+def main():
     if len(sys.argv) > 1:
         with tempfile.TemporaryDirectory() as tmpdirname:
             dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
             with open(dsc_file_path, 'w') as dsc_file:
                 extract_parameters(sys.argv[1], dsc_file)
             make_plot(dsc_file_path, tmpdirname)
+            # find_volume_column()
             print(tmpdirname)
             pass
     else:
         extractor = ParameterExtractor()
         extractor.start()
+
+
+if __name__ == "__main__":
+    main()
