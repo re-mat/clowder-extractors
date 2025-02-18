@@ -168,9 +168,7 @@ class CSVStripper(Extractor):
 
 def main():
     extractor = CSVStripper()
-    # extractor.start()
-    cdb = ChemDB()
-    print("Extractor started", cdb)
+    extractor.start()
 
 if __name__ == "__main__":
     main()

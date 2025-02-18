@@ -30,23 +30,36 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build and push remat-clowder-extractor-base image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ghcr.io/re-mat/remat-clowder-extractor-base:${{ env.branch }}
+            ghcr.io/re-mat/remat-clowder-extractor-base:latest
+
       - name: Build and push experiment-from-excel image
         uses: docker/build-push-action@v4
         with:
-          context: experiment-from-excel
+          context: ./src/clowder_extractors/experiment_from_excel
+          file : ./src/clowder_extractors/experiment_from_excel/Dockerfile
           push: true
           tags: ghcr.io/re-mat/experiment-from-excel:${{ env.branch }}
 
       - name: Build and push parameters from txt image
         uses: docker/build-push-action@v4
         with:
-          context: parameter-extractor
+          context: ./src/clowder_extractors/csv_stripper
+          file: ./src/clowder_extractors/csv_stripper/Dockerfile
           push: true
           tags: ghcr.io/re-mat/parameter-extractor:${{ env.branch }}
 
       - name: Build and push csv stripper image
         uses: docker/build-push-action@v4
         with:
-          context: csv-stripper
+          context: ./src/clowder_extractors/csv_stripper
+          file: ./src/clowder_extractors/csv_stripper/Dockerfile
           push: true
           tags: ghcr.io/re-mat/dsc-csv-stripper:${{ env.branch }}

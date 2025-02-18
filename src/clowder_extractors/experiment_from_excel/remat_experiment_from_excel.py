@@ -392,7 +392,6 @@ class ExperimentFromExcel(Extractor):
 
 def main():
     if len(sys.argv) == 2:
-        print("Extracting experiment from excel file")
         experiment = excel_to_json(sys.argv[1])
         print(json.dumps(experiment, indent=4, default=str, ensure_ascii=False))
     else:
