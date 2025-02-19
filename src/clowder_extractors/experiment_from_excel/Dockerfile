@@ -4,6 +4,7 @@ FROM ghcr.io/re-mat/remat-clowder-extractor-base:latest
 # environment variables
 ENV RABBITMQ_QUEUE="remat.experiment.from_excel"
 
+# Copy extractor specific files
 COPY extractor_info.json ./
 
 ENTRYPOINT ["experiment_from_excel"]

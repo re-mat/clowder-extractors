@@ -17,8 +17,6 @@ import matplotlib.pyplot as plt
 
 # from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import microliters_to_milli
 
-print("All imports done")
-
 
 def is_float(element: any) -> bool:
     """

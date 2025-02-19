@@ -4,6 +4,7 @@ FROM ghcr.io/re-mat/remat-clowder-extractor-base:latest
 
 ENV RABBITMQ_QUEUE="remat.DSC.csv_stripper"
 
+# Copy extractor specific files
 COPY extractor_info.json ./
 
 ENTRYPOINT ["csv_stripper"]
