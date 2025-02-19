@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  pre-commit:
+    name: Format and Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install flake8 pre-commit
+
+      - name: Run pre-commit hooks
+        uses: pre-commit/action@v3.0.1
+
+
+  checks:
+    name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    needs: [pre-commit]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.13"]
+        runs-on: [ubuntu-latest, windows-latest, macos-14]
+
+        include:
+          - python-version: "pypy-3.10"
+            runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+
+      - name: Install package
+        run: python -m pip install .
