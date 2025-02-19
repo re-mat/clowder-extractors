@@ -7,13 +7,13 @@ name = "clowder-extractors"
 version = "0.1.0"
 description = "A collection of extractors for Clowder"
 authors = [
-  { name = "Ben Galewsky", email = "bengal1@illinois.edu" },
+  { name = "Ben Galewsky", email = "bengal1@illinois.edu" }
 ]
 dependencies = [
     "pyclowder==2.7.0",
     "openpyxl==3.1.1",
     "pandas",
-    "matplotlib==3.9.1",
+    "matplotlib==3.9.1"
 ]
 
 
@@ -32,9 +32,22 @@ experiment_from_excel = "clowder_extractors.experiment_from_excel.remat_experime
 parameter_extractor = "clowder_extractors.parameter_extractor.remat_parameter_extractor:main"
 
 [tool.flake8]
-max-line-length = 88
-exclude = ["__pycache__", ".git", ".venv"]
+max-line-length = 100
+exclude = [
+    ".git",
+    "__pycache__",
+    "venv",
+    "build",
+    "dist",
+    ".venv"
+]
+ignore = [
+    "E203",  # Whitespace before ':'
+    "E266",  # Too many leading '#' for block comment
+    "E501", # Line too long (handled by Black)
+    "W503"  # Line break occurred before a binary operator
+]
+
 
 [tool.poetry.dev-dependencies]
 flake8 = "^6.x"
-

@@ -7,4 +7,3 @@ ENV RABBITMQ_QUEUE="remat.DSC.csv_stripper"
 COPY extractor_info.json ./
 
 ENTRYPOINT ["csv_stripper"]
-

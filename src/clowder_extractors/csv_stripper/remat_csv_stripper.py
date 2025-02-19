@@ -14,12 +14,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # from clowder_extractors.parameter_extractor.remat_parameter_extractor import make_plot
-from clowder_extractors.parameter_extractor.remat_parameter_extractor import make_plot
 
 # from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import microliters_to_milli
-from clowder_extractors.experiment_from_excel.chemistry import ChemDB
 
 print("All imports done")
+
 
 def is_float(element: any) -> bool:
     """
@@ -39,17 +38,23 @@ def is_float(element: any) -> bool:
 
 
 def set_dataset_title(connector, host, key, dataset_id, datasetname, description):
-    logger = logging.getLogger(__name__)
-    url = '%sapi/datasets/%s/title?key=%s' % (host, dataset_id, key)
-    result = requests.put(url, headers={"Content-Type": "application/json"},
-                          data=json.dumps({"name": datasetname}),
-                          verify=connector.ssl_verify if connector else True)
+    logging.getLogger(__name__)
+    url = "%sapi/datasets/%s/title?key=%s" % (host, dataset_id, key)
+    result = requests.put(
+        url,
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"name": datasetname}),
+        verify=connector.ssl_verify if connector else True,
+    )
     result.raise_for_status()
 
-    url = '%sapi/datasets/%s/description?key=%s' % (host, dataset_id, key)
-    result = requests.put(url, headers={"Content-Type": "application/json"},
-                          data=json.dumps({"description": description}),
-                          verify=connector.ssl_verify if connector else True)
+    url = "%sapi/datasets/%s/description?key=%s" % (host, dataset_id, key)
+    result = requests.put(
+        url,
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"description": description}),
+        verify=connector.ssl_verify if connector else True,
+    )
     result.raise_for_status()
 
 
@@ -58,10 +63,10 @@ def extract_parameters(path, stripped_file: typing.TextIO):
     stripped_csv = csv.writer(stripped_file)
     stripped_csv.writerow(["Time", "Temperature", "Heat Flow (Normalized)"])
 
-    with open(path, 'r') as experiment_file:
+    with open(path, "r") as experiment_file:
         reader = csv.reader(experiment_file)
         for row in reader:
-            if row == ['[step]']:
+            if row == ["[step]"]:
                 break
             params[row[0]] = row[1]
 
@@ -72,13 +77,14 @@ def extract_parameters(path, stripped_file: typing.TextIO):
                 stripped_csv.writerow(row2)
     return params
 
+
 def make_plot(dsc_file_path, tmpdirname):
 
     # Plotting Heat Flow vs. Temperature graph
     df = pd.read_csv(dsc_file_path)
     df.columns = ["Temperature", "Heat Flow (Normalized)", "Heat Flow"]
-    temperature = df['Temperature']
-    heat_flow = df['Heat Flow']
+    temperature = df["Temperature"]
+    heat_flow = df["Heat Flow"]
 
     # Plot graph
     plt.plot(temperature, heat_flow)
@@ -91,13 +97,12 @@ def make_plot(dsc_file_path, tmpdirname):
     # Save output image files
     plt.tight_layout()
     graph_file_path = os.path.join(tmpdirname, "DSC_Curve.png")
-    plt.savefig(graph_file_path, format='png', dpi=300)
+    plt.savefig(graph_file_path, format="png", dpi=300)
     thumb_file_path = os.path.join(tmpdirname, "DSC_Curve_thumb.png")
-    plt.savefig(thumb_file_path, format='png', dpi=80)
+    plt.savefig(thumb_file_path, format="png", dpi=80)
 
     plt.close()
     return graph_file_path, thumb_file_path
-
 
 
 class CSVStripper(Extractor):
@@ -108,67 +113,86 @@ class CSVStripper(Extractor):
         self.setup()
 
         # setup logging for the extractor
-        logging.getLogger('pyclowder').setLevel(logging.DEBUG)
-        logging.getLogger('__main__').setLevel(logging.DEBUG)
+        logging.getLogger("pyclowder").setLevel(logging.DEBUG)
+        logging.getLogger("__main__").setLevel(logging.DEBUG)
 
     def check_message(self, connector, host, secret_key, resource, parameters):
         # Don't operate on the output of this extractor. Only the raw input files from
         # the instrument
-        if resource['name'] == "DSC_Curve.csv":
+        if resource["name"] == "DSC_Curve.csv":
             return CheckMessage.ignore
         else:
             return CheckMessage.download
 
     def process_message(self, connector, host, secret_key, resource, parameters):
-        logger = logging.getLogger('__main__')
+        logger = logging.getLogger("__main__")
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
-            with open(dsc_file_path, 'w') as dsc_file:
-                dsc_file = open(os.path.join(tmpdirname, "DSC_Curve.csv"), 'w')
-                parameters = extract_parameters(
-                    resource['local_paths'][0],
-                    dsc_file)
+            with open(dsc_file_path, "w") as dsc_file:
+                dsc_file = open(os.path.join(tmpdirname, "DSC_Curve.csv"), "w")
+                parameters = extract_parameters(resource["local_paths"][0], dsc_file)
 
             logger.debug(parameters)
 
             # Upload the stripped CSV file
-            uploaded_id = pyclowder.files.upload_to_dataset(connector, host, secret_key,
-                                                            resource['parent'].get('id', None),
-                                                            dsc_file_path)
+            uploaded_id = pyclowder.files.upload_to_dataset(
+                connector,
+                host,
+                secret_key,
+                resource["parent"].get("id", None),
+                dsc_file_path,
+            )
 
             # Make a plot and thumbnail of the plot
             graph_file_path, thumb_file_path = make_plot(dsc_file_path, tmpdirname)
 
             # Attach to our uploaded CSV file
-            pyclowder.files.upload_preview(connector, host, secret_key, fileid=uploaded_id,
-                                           previewfile=graph_file_path, preview_mimetype="image/png")
+            pyclowder.files.upload_preview(
+                connector,
+                host,
+                secret_key,
+                fileid=uploaded_id,
+                previewfile=graph_file_path,
+                preview_mimetype="image/png",
+            )
 
-            pyclowder.files.upload_thumbnail(connector, host, secret_key,
-                                             uploaded_id, thumb_file_path)
-
+            pyclowder.files.upload_thumbnail(
+                connector, host, secret_key, uploaded_id, thumb_file_path
+            )
 
             # Attach metadata stripped from the source file
             metadata = {
-                "@context": ["https://clowder.ncsa.illinois.edu/contexts/metadata.jsonld"],
-                "dataset_id": resource['parent'].get('id', None),
+                "@context": [
+                    "https://clowder.ncsa.illinois.edu/contexts/metadata.jsonld"
+                ],
+                "dataset_id": resource["parent"].get("id", None),
                 "content": parameters,
                 "agent": {
                     "@type": "cat:extractor",
-                    "extractor_id": host + "api/extractors/" + self.extractor_info['name']
-                }
+                    "extractor_id": host
+                    + "api/extractors/"
+                    + self.extractor_info["name"],
+                },
             }
 
-            pyclowder.files.upload_metadata(connector, host, secret_key, uploaded_id, metadata)
-            set_dataset_title(connector, host, secret_key,
-                              dataset_id=resource['parent'].get('id', None),
-                              datasetname=parameters['Sample name'],
-                              description=parameters['proceduresegments'])
+            pyclowder.files.upload_metadata(
+                connector, host, secret_key, uploaded_id, metadata
+            )
+            set_dataset_title(
+                connector,
+                host,
+                secret_key,
+                dataset_id=resource["parent"].get("id", None),
+                datasetname=parameters["Sample name"],
+                description=parameters["proceduresegments"],
+            )
 
 
 def main():
     extractor = CSVStripper()
     extractor.start()
+
 
 if __name__ == "__main__":
     main()
