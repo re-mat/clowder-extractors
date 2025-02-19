@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 name = "clowder-extractors"
 version = "0.1.0"
 description = "A collection of extractors for Clowder"
+requires-python = ">=3.8"
 authors = [
   { name = "Ben Galewsky", email = "bengal1@illinois.edu" }
 ]
@@ -13,9 +14,8 @@ dependencies = [
     "pyclowder==2.7.0",
     "openpyxl==3.1.1",
     "pandas",
-    "matplotlib==3.9.1"
+    "matplotlib==3.7.1"
 ]
-
 
 [tool.hatch.version]
 path = "src/clowder_extractors/__init__.py"
