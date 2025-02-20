@@ -36,6 +36,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/re-mat/remat-clowder-extractor-base:${{ env.branch }}
             ghcr.io/re-mat/remat-clowder-extractor-base:latest
@@ -46,15 +47,21 @@ jobs:
           context: ./src/clowder_extractors/experiment_from_excel
           file : ./src/clowder_extractors/experiment_from_excel/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ghcr.io/re-mat/experiment-from-excel:${{ env.branch }}
+          build-args: |
+            IMAGE_TAG=${{ env.branch }}
 
       - name: Build and push parameters from txt image
         uses: docker/build-push-action@v4
         with:
-          context: ./src/clowder_extractors/csv_stripper
-          file: ./src/clowder_extractors/csv_stripper/Dockerfile
+          context: ./src/clowder_extractors/parameter_extractor
+          file: ./src/clowder_extractors/parameter_extractor/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ghcr.io/re-mat/parameter-extractor:${{ env.branch }}
+          build-args: |
+            IMAGE_TAG=${{ env.branch }}
 
       - name: Build and push csv stripper image
         uses: docker/build-push-action@v4
@@ -62,4 +69,7 @@ jobs:
           context: ./src/clowder_extractors/csv_stripper
           file: ./src/clowder_extractors/csv_stripper/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ghcr.io/re-mat/dsc-csv-stripper:${{ env.branch }}
+          build-args: |
+            IMAGE_TAG=${{ env.branch }}

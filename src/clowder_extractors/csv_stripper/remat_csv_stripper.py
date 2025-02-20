@@ -13,6 +13,7 @@ import pyclowder.files
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Below comments are examples of how to import functions from other extractors
 # from clowder_extractors.parameter_extractor.remat_parameter_extractor import make_plot
 
 # from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import microliters_to_milli
