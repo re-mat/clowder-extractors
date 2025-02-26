@@ -1,0 +1,41 @@
+# to use the extractors start with
+# docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.extractors.yml up -d
+
+services:
+  # ----------------------------------------------------------------------
+  # EXTRACTORS
+  # ----------------------------------------------------------------------
+
+  experiment-from-excel:
+#    Migrate-Extractors-to-Shared-Python-Module
+    image: ghcr.io/re-mat/experiment-from-excel:Migrate-Extractors-to-Shared-Python-Module
+    restart: unless-stopped
+    networks:
+      - clowder
+    depends_on:
+      - rabbitmq
+      - clowder
+    environment:
+      - RABBITMQ_URI=${RABBITMQ_URI:-amqp://guest:guest@rabbitmq/%2F}
+
+  parameters-from-txt:
+    image: ghcr.io/re-mat/parameter-extractor:Migrate-Extractors-to-Shared-Python-Module
+    restart: unless-stopped
+    networks:
+      - clowder
+    depends_on:
+      - rabbitmq
+      - clowder
+    environment:
+      - RABBITMQ_URI=${RABBITMQ_URI:-amqp://guest:guest@rabbitmq/%2F}
+
+  dsc-csv-stripper:
+    image:  ghcr.io/re-mat/dsc-csv-stripper:Migrate-Extractors-to-Shared-Python-Module
+    restart: unless-stopped
+    networks:
+      - clowder
+    depends_on:
+      - rabbitmq
+      - clowder
+    environment:
+      - RABBITMQ_URI=${RABBITMQ_URI:-amqp://guest:guest@rabbitmq/%2F}
