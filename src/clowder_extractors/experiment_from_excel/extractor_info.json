@@ -1,8 +1,8 @@
 {
   "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
-  "name": "remat.parameter-from-txt",
+  "name": "remat.experiment-from-excel",
   "version": "1.0.0",
-  "description": "Extract experiment procedure json from TA Instruments DSC",
+  "description": "Extract experiment json from excel file",
   "author": "Ben Galewsky <bengal1@illinois.edu>",
   "contributors": [],
   "contexts": [],
@@ -13,12 +13,12 @@
     },
     {
       "repType": "docker",
-      "repUrl": "ghcr.io/re-mat/parameter-extractor"
+      "repUrl": "ghcr.io/re-mat/experiment-from-excel"
     }
   ],
   "process": {
     "file": [
-      "text/plain"
+      "application/vnd_openxmlformats-officedocument_spreadsheetml_sheet"
     ]
   },
   "external_services": [],

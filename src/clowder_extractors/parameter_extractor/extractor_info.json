@@ -1,8 +1,8 @@
 {
   "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
-  "name": "remat.csv_stripper",
+  "name": "remat.parameter-from-txt",
   "version": "1.0.0",
-  "description": "Strip metadata from DSC Curve CSV file. Update the dataset title and description from the parameters",
+  "description": "Extract experiment procedure json from TA Instruments DSC",
   "author": "Ben Galewsky <bengal1@illinois.edu>",
   "contributors": [],
   "contexts": [],
@@ -13,12 +13,12 @@
     },
     {
       "repType": "docker",
-      "repUrl": "ghcr.io/re-mat/csv-stripper"
+      "repUrl": "ghcr.io/re-mat/parameter-extractor"
     }
   ],
   "process": {
     "file": [
-      "text/csv"
+      "text/plain"
     ]
   },
   "external_services": [],
