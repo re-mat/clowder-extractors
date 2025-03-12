@@ -10,8 +10,10 @@ class ChemDB:
         self.load_database()
 
     def load_database(self):
+        # Download the chemistry csv file
+
         df = pandas.read_csv(
-            "https://uofi.box.com/shared/static/p8r6ef1lcj0lk44ggcb6zmv1d66abyfk.csv"
+            "https://uofi.box.com/shared/static/p8r6ef1lcj0lk44ggcb6zmv1d66abyfk.csv",
         )
         # Check if the index column is unique
         if df["SMILES"].is_unique:
