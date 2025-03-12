@@ -5,16 +5,23 @@ import os
 import re
 import sys
 import tempfile
+from logging import Logger
 from typing import TextIO
 import pandas as pd
 import matplotlib.pyplot as plt
+import requests
 
 import pyclowder.files
+import pyclowder.datasets
 from pyclowder.extractors import Extractor
 from pyclowder.utils import CheckMessage
+import json
 
 
 # from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import compute_values
+from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import (
+    excel_to_json,
+)
 
 
 def make_plot(dsc_file_path, tmpdirname):
@@ -53,13 +60,19 @@ def strip_units(param: str) -> float:
     return float(param.strip().split(" ")[0])
 
 
-def extract_parameters(path: str, dsc_file: TextIO) -> dict:
+def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, str):
     section_re = re.compile(r"\[(.*)]$")
     parameters = {}
 
     stripped_csv = csv.writer(dsc_file)
     heat_flow_column = None
     max_heat_flow = float("-inf")
+
+    # Download the datasheet
+    pd, datasheet_file = read_data_sheet_file(
+        "https://uofi.box.com/shared/static/5vb0ek7htxk2wpoklyxsvk1ctgjwi9kw"
+    )
+    print(pd.values)
 
     with open(path, "r") as param_file:
         section = None
@@ -71,11 +84,19 @@ def extract_parameters(path: str, dsc_file: TextIO) -> dict:
                 parameters[section] = {}
             else:
                 if section != "Step":
-                    (key, value) = line.strip("\n").split("\t")
-                    if key not in parameters[section]:
-                        parameters[section][key] = value
-                    else:
-                        parameters[section][key] = [parameters[section][key]] + [value]
+                    line_value = line.strip("\n").split("\t")
+                    if len(line_value) == 2:
+                        (key, value) = line.strip("\n").split("\t")
+                        if key not in parameters[section]:
+                            parameters[section][key] = value
+                        else:
+                            parameters[section][key] = [parameters[section][key]] + [
+                                value
+                            ]
+                    # Special case for the Project line
+                    elif len(line_value) == 1 and line_value[0] == "Project":
+                        parameters[section]["Project"] = " ".join(line_value)
+
                 else:
                     # This line is part of the DSC output. Copy lines
                     # to the DSC_File.csv file
@@ -143,6 +164,10 @@ def extract_parameters(path: str, dsc_file: TextIO) -> dict:
             "Max Baseline Temp": max_baseline_temp,
         }
 
+    notes_from_trios = extract_notes_field(parameters)
+    if not notes_from_trios:
+        logger.debug("No notes found in the TRIOS file")
+
     experiment = {
         "procedure": {
             "Experiment Type": parameters["Procedure"]["Test Name"],
@@ -173,7 +198,33 @@ def extract_parameters(path: str, dsc_file: TextIO) -> dict:
         "Analysis": analysis,
     }
 
-    return experiment
+    # Add the inputs object and Batch ID from experiment_from_excel to the experiment object
+    try:
+        result_from_excel = excel_to_json(datasheet_file)
+        if result_from_excel is None:
+            logger.debug("Error: result_from_excel is None")
+        elif "inputs" not in result_from_excel:
+            logger.debug("Error: 'inputs' field is missing in result_from_excel")
+        else:
+            experiment["inputs"] = result_from_excel["inputs"]
+
+            if "Batch ID" in result_from_excel:
+                experiment["Batch ID"] = result_from_excel["Batch ID"]
+            if "procedure" in result_from_excel:
+                experiment["procedure"] = result_from_excel["procedure"]
+                experiment["procedure"]["Mix Date and Time"] = notes_from_trios.get(
+                    "Mix Date and time", None
+                )
+            map_input_values_from_notes_to_experiment(notes_from_trios, experiment)
+
+    except Exception as e:
+        logger.error(f"Error processing excel file: {e}")
+
+    print(json.dumps(experiment, indent=4, default=str, ensure_ascii=False))
+    logger.info(
+        "Experiment json {json.dumps(experiment, indent=4, default=str, ensure_ascii=False)}"
+    )
+    return experiment, datasheet_file
 
 
 def find_min_temp(log_entries: dict) -> float:
@@ -211,6 +262,76 @@ def find_heat_flow_column(line_values: list[str]) -> int:
     return heat_flow_column
 
 
+def extract_notes_field(parameters: dict) -> dict:
+    parsed_dict = {}
+    if "Sample" in parameters and "Notes" in parameters["Sample"]:
+        notes = parameters["Sample"]["Notes"]
+        pairs = notes.split(";")
+        for pair in pairs:
+            if ":" in pair:
+                key, val = pair.split(":", 1)
+                parsed_dict[key.strip()] = val.strip()
+    return parsed_dict
+
+
+def map_input_values_from_notes_to_experiment(notes: dict, experiment: dict):
+
+    if not notes or not experiment:
+        return
+    # Get all keys experiment['inputs] and check if they are in notes
+    # If they are, add them to experiment['inputs] with the value from notes
+    for exp_key in experiment["inputs"]:
+        exp_key_without_trailing_s = exp_key[:-1] if exp_key.endswith("s") else exp_key
+        for notes_key in notes:
+            # Check if Substring is present in the notes_key
+            if exp_key_without_trailing_s in notes_key.lower():
+                # Get the [] inputs key from this experiment['inputs'][exp_key] dict
+                if experiment["inputs"][exp_key]:
+                    for subKey in experiment["inputs"][exp_key]:
+                        if "-inputs" in subKey.lower():
+                            experiment["inputs"][exp_key][subKey] = notes[notes_key]
+                            break
+                break
+
+
+def read_data_sheet_file(file_path: str) -> (pd.DataFrame, str):
+
+    try:
+        # Send a GET request to the URL
+        response = requests.get(file_path, stream=True)
+        response.raise_for_status()  # Raise an HTTPError for bad responses
+
+        # Extract the filename from the Content-Disposition header
+        if "Content-Disposition" in response.headers:
+            content_disposition = response.headers["Content-Disposition"]
+            filename = re.findall('filename="(.+)"', content_disposition)
+            if filename:
+                output_file = filename[0]
+            else:
+                output_file = "datasheet.xlsx"
+        else:
+            output_file = "datasheet.xlsx"
+
+        # Write the content to a local file
+        with open(output_file, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+        print(f"File downloaded successfully as {output_file}")
+
+        # Read the downloaded file into a pandas DataFrame
+        df = pd.read_excel(output_file)
+
+        # # Delete the local downloaded file
+        # os.remove(output_file)
+        # print(f"File {output_file} deleted successfully")
+
+        return df, output_file
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred while downloading the file: {e}")
+        return None, None
+
+
 class ParameterExtractor(Extractor):
     def __init__(self):
         Extractor.__init__(self)
@@ -230,14 +351,17 @@ class ParameterExtractor(Extractor):
         with tempfile.TemporaryDirectory() as tmpdirname:
             dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
             with open(dsc_file_path, "w") as dsc_file:
-                parameters = extract_parameters(resource["local_paths"][0], dsc_file)
+                parameters, datasheet_file = extract_parameters(
+                    resource["local_paths"][0], dsc_file, logger
+                )
 
             # Upload the extracted CSV file
+            dataset_id = resource["parent"].get("id", None)
             uploaded_id = pyclowder.files.upload_to_dataset(
                 connector,
                 host,
                 secret_key,
-                resource["parent"].get("id", None),
+                dataset_id,
                 dsc_file_path,
             )
 
@@ -275,13 +399,21 @@ class ParameterExtractor(Extractor):
             connector, host, secret_key, resource["parent"].get("id", None), metadata
         )
 
+        # Uploaded the downloaded datasheet file to the dataset
+        pyclowder.files.upload_to_dataset(
+            connector, host, secret_key, dataset_id, datasheet_file, False
+        )
+        # Once uploaded delete the file from local storage
+        os.remove(datasheet_file)
+
 
 def main():
     if len(sys.argv) > 1:
+        logger = logging.getLogger("__main__")
         with tempfile.TemporaryDirectory() as tmpdirname:
             dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
             with open(dsc_file_path, "w") as dsc_file:
-                extract_parameters(sys.argv[1], dsc_file)
+                extract_parameters(sys.argv[1], dsc_file, logger)
             make_plot(dsc_file_path, tmpdirname)
             # find_volume_column()
             print(tmpdirname)
