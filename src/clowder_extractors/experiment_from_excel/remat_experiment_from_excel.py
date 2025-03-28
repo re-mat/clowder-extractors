@@ -2,8 +2,9 @@
 import json
 import sys
 from typing import Tuple, List, Dict
+from datetime import datetime
 
-# from .chemistry import Monomer, ChemDB, Catalyst, Inhibitor, Solvent, Additive, Initiator
+
 from clowder_extractors.experiment_from_excel.chemistry import (
     Monomer,
     ChemDB,
@@ -389,6 +390,15 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         }
 
 
+# helper method to serialize datetime objects to string
+def serialize_dates(data):
+    for key, value in data.items():
+        if isinstance(value, datetime):
+            data[key] = value.isoformat()
+        elif isinstance(value, dict):  # Handle nested dictionaries
+            serialize_dates(value)
+
+
 def read_inputs_from_worksheet(ws: Worksheet) -> Tuple[List[Dict], Dict]:
     # The inputs sheets contain rows of inputs and then a procedure block
     # that applies to all of the inputs of that type
@@ -508,6 +518,10 @@ def excel_to_json(path):
     if procedure["general"]["Type of polymerization"] == "NONE":
         for fromp_property in fromp_properties:
             procedure.pop(fromp_property, None)
+
+    # Serialize dateTime to allow for JSON serialization
+    serialize_dates(procedure)
+    serialize_dates(inputs)
 
     result = {
         "Batch ID": batch_id,
