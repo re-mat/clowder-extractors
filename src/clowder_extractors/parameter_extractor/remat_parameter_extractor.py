@@ -22,6 +22,13 @@ import json
 from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import (
     excel_to_json,
 )
+from clowder_extractors.parameter_extractor.notes import Notes
+
+# sample datasheets locations
+url_mapping = {
+    "PostCure": "https://uofi.box.com/shared/static/5vb0ek7htxk2wpoklyxsvk1ctgjwi9kw",
+    "CureKinetics": "https://uofi.box.com/shared/static/12t8k0siycj2ec82sb9mrxnlnbt0ggq7",
+}
 
 
 def make_plot(dsc_file_path, tmpdirname):
@@ -67,12 +74,6 @@ def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, st
     stripped_csv = csv.writer(dsc_file)
     heat_flow_column = None
     max_heat_flow = float("-inf")
-
-    # Download the datasheet
-    pd, datasheet_file = read_data_sheet_file(
-        "https://uofi.box.com/shared/static/5vb0ek7htxk2wpoklyxsvk1ctgjwi9kw"
-    )
-    print(pd.values)
 
     with open(path, "r") as param_file:
         section = None
@@ -164,8 +165,14 @@ def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, st
             "Max Baseline Temp": max_baseline_temp,
         }
 
-    notes_from_trios = extract_notes_field(parameters)
-    if not notes_from_trios:
+    trios_notes = Notes(parameters)
+    space = trios_notes.notes["Space"]
+
+    # Download the datasheet file for the given space
+    pd, datasheet_file = read_data_sheet_file(url_mapping[space], space + ".xlsx")
+    trios_notes.path = datasheet_file
+
+    if not trios_notes.notes:
         logger.debug("No notes found in the TRIOS file")
 
     experiment = {
@@ -210,19 +217,34 @@ def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, st
 
             if "Batch ID" in result_from_excel:
                 experiment["Batch ID"] = result_from_excel["Batch ID"]
+            # Append Excel extractor procedure to the experiment procedure
+            # Remove below block if needed to decouple both extractors
             if "procedure" in result_from_excel:
-                experiment["procedure"] = result_from_excel["procedure"]
-                experiment["procedure"]["Mix Date and Time"] = notes_from_trios.get(
-                    "Mix Date and time", None
+                for key, value in result_from_excel["procedure"].items():
+                    if key not in experiment["procedure"]:
+                        experiment["procedure"][key] = value
+                    else:
+                        # Handle the case where the key already exists
+                        if isinstance(experiment["procedure"][key], list):
+                            experiment["procedure"][key].append(value)
+                        else:
+                            experiment["procedure"][key] = [
+                                experiment["procedure"][key],
+                                value,
+                            ]
+                experiment["procedure"]["Mix Date and Time"] = str(
+                    trios_notes.notes.get("Mix Date and time", None)
                 )
-            map_input_values_from_notes_to_experiment(notes_from_trios, experiment)
 
+            trios_notes.map_input_values_from_notes_to_experiment(experiment)
+        logger.info("Datasheet to be uploaded is %s", datasheet_file)
     except Exception as e:
-        logger.error(f"Error processing excel file: {e}")
+        logger.error("Error processing excel file:  %s", e, exc_info=True)
 
     print(json.dumps(experiment, indent=4, default=str, ensure_ascii=False))
     logger.info(
-        "Experiment json {json.dumps(experiment, indent=4, default=str, ensure_ascii=False)}"
+        "Experiment json: %s",
+        json.dumps(experiment, indent=4, default=str, ensure_ascii=False),
     )
     return experiment, datasheet_file
 
@@ -274,27 +296,7 @@ def extract_notes_field(parameters: dict) -> dict:
     return parsed_dict
 
 
-def map_input_values_from_notes_to_experiment(notes: dict, experiment: dict):
-
-    if not notes or not experiment:
-        return
-    # Get all keys experiment['inputs] and check if they are in notes
-    # If they are, add them to experiment['inputs] with the value from notes
-    for exp_key in experiment["inputs"]:
-        exp_key_without_trailing_s = exp_key[:-1] if exp_key.endswith("s") else exp_key
-        for notes_key in notes:
-            # Check if Substring is present in the notes_key
-            if exp_key_without_trailing_s in notes_key.lower():
-                # Get the [] inputs key from this experiment['inputs'][exp_key] dict
-                if experiment["inputs"][exp_key]:
-                    for subKey in experiment["inputs"][exp_key]:
-                        if "-inputs" in subKey.lower():
-                            experiment["inputs"][exp_key][subKey] = notes[notes_key]
-                            break
-                break
-
-
-def read_data_sheet_file(file_path: str) -> (pd.DataFrame, str):
+def read_data_sheet_file(file_path: str, file_name: str) -> (pd.DataFrame, str):
 
     try:
         # Send a GET request to the URL
@@ -308,9 +310,9 @@ def read_data_sheet_file(file_path: str) -> (pd.DataFrame, str):
             if filename:
                 output_file = filename[0]
             else:
-                output_file = "datasheet.xlsx"
+                output_file = file_name
         else:
-            output_file = "datasheet.xlsx"
+            output_file = file_name
 
         # Write the content to a local file
         with open(output_file, "wb") as file:
@@ -320,10 +322,6 @@ def read_data_sheet_file(file_path: str) -> (pd.DataFrame, str):
 
         # Read the downloaded file into a pandas DataFrame
         df = pd.read_excel(output_file)
-
-        # # Delete the local downloaded file
-        # os.remove(output_file)
-        # print(f"File {output_file} deleted successfully")
 
         return df, output_file
 
@@ -394,11 +392,19 @@ class ParameterExtractor(Extractor):
                 "extractor_id": host + "api/extractors/" + self.extractor_info["name"],
             },
         }
+        # Add extractor metadata to dataset
+        try:
+            pyclowder.datasets.upload_metadata(
+                connector,
+                host,
+                secret_key,
+                resource["parent"].get("id", None),
+                metadata,
+            )
+        except Exception as e:
+            logger.error("Error uploading metadata: %s", e, exc_info=True)
 
-        pyclowder.datasets.upload_metadata(
-            connector, host, secret_key, resource["parent"].get("id", None), metadata
-        )
-
+        logger.info("uploading datasheet file to dataset %s", datasheet_file)
         # Uploaded the downloaded datasheet file to the dataset
         pyclowder.files.upload_to_dataset(
             connector, host, secret_key, dataset_id, datasheet_file, False
