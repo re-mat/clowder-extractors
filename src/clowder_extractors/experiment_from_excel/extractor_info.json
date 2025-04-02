@@ -1,6 +1,6 @@
 {
   "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
-  "name": "remat.experiment-from-excel",
+  "name": "remat.batch-experiment-from-excel",
   "version": "1.0.0",
   "description": "Extract experiment json from excel file",
   "author": "Ben Galewsky <bengal1@illinois.edu>",
