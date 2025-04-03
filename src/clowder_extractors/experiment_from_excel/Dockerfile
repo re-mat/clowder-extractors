@@ -3,7 +3,7 @@
 ARG IMAGE_TAG=main
 FROM ghcr.io/re-mat/remat-clowder-extractor-base:${IMAGE_TAG}
 # environment variables
-ENV RABBITMQ_QUEUE="remat.experiment.from_excel"
+ENV RABBITMQ_QUEUE="remat.batch.experiment.from_excel"
 
 # Copy extractor specific files
 COPY extractor_info.json ./
