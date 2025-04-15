@@ -32,7 +32,7 @@ To start Clowder, ensure that the `docker-compose.yml` and `docker-compose-remat
 
 #### Common Issues:
 - **If you encounter an `Unpigz` error on an Apple Silicon chip**
-This is caused by the docker client assuming the `unpigz` binary is present in `/usr/bin/unpigz`, which is not brew 
+This is caused by the docker client assuming the `unpigz` binary is present in `/usr/bin/unpigz`, which is not brew
 installs the correct binary Apple Silicon Macs. The `unpigz` binary is a part of the `pigz` package.
   1. Install `pigz` using Homebrew:
      ```sh

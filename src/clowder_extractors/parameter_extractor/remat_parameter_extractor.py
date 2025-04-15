@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 import csv
 import logging
 import os
@@ -26,8 +27,9 @@ from clowder_extractors.parameter_extractor.notes import Notes
 
 # sample datasheets locations
 url_mapping = {
-    "PostCure": "https://uofi.box.com/shared/static/5vb0ek7htxk2wpoklyxsvk1ctgjwi9kw",
-    "CureKinetics": "https://uofi.box.com/shared/static/12t8k0siycj2ec82sb9mrxnlnbt0ggq7",
+    "CureKin_IA": "https://uofi.box.com/shared/static/12t8k0siycj2ec82sb9mrxnlnbt0ggq7",
+    "PostCure_IA": "https://uofi.box.com/shared/static/5vb0ek7htxk2wpoklyxsvk1ctgjwi9kw",
+    "CureKin_LDM": "https://uofi.box.com/shared/static/k0ix1qjmle4iv5trvxqodbmaa8ip2roh",
 }
 
 
@@ -166,10 +168,15 @@ def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, st
         }
 
     trios_notes = Notes(parameters)
-    space = trios_notes.notes["Space"]
+    # "CureKin_IA", "PostCure_IA", "CureKin_LDM"
+    template_datasheet = trios_notes.notes["Data_sheet"]
+    # IA, LDM, etc
+    initials = template_datasheet.split("_")[1]
 
     # Download the datasheet file for the given space
-    pd, datasheet_file = read_data_sheet_file(url_mapping[space], space + ".xlsx")
+    pd, datasheet_file = read_data_sheet_file(
+        url_mapping[template_datasheet], template_datasheet + ".xlsx"
+    )
     trios_notes.path = datasheet_file
 
     if not trios_notes.notes:
@@ -204,6 +211,9 @@ def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, st
         },
         "Analysis": analysis,
     }
+    # Make a deep copy of the experiment dict to use for the inputs
+    # Original experiment will be uploaded in parameter extractor and new copy will be modified to be used by excel extractor
+    experiment_to_upload = copy.deepcopy(experiment)
 
     # Add the inputs object and Batch ID from experiment_from_excel to the experiment object
     try:
@@ -236,17 +246,17 @@ def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, st
                     trios_notes.notes.get("Mix Date and time", None)
                 )
 
-            trios_notes.map_input_values_from_notes_to_experiment(experiment)
+            trios_notes.map_input_values_from_notes_to_experiment(experiment, initials)
         logger.info("Datasheet to be uploaded is %s", datasheet_file)
     except Exception as e:
         logger.error("Error processing excel file:  %s", e, exc_info=True)
 
-    print(json.dumps(experiment, indent=4, default=str, ensure_ascii=False))
+    print(json.dumps(experiment_to_upload, indent=4, default=str, ensure_ascii=False))
     logger.info(
         "Experiment json: %s",
         json.dumps(experiment, indent=4, default=str, ensure_ascii=False),
     )
-    return experiment, datasheet_file
+    return experiment_to_upload, datasheet_file
 
 
 def find_min_temp(log_entries: dict) -> float:
