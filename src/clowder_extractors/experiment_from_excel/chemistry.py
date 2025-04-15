@@ -31,10 +31,10 @@ class ChemDB:
             print("There are duplicate entries in the chemistry database.")
             raise ValueError("There are duplicate entries in the chemistry database.")
 
-        if new_df["Abbreviation"].dropna().is_unique:
-            new_df.set_index("Abbreviation", inplace=True)
+        if new_df["SMILES"].is_unique:
+            new_df.set_index("SMILES", inplace=True)
             self.new_data = new_df
-
+            self.data = new_df
         else:
             print("There are duplicate entries in the new chemistry database.")
             raise ValueError(

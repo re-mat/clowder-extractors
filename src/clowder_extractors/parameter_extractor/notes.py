@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from clowder_extractors.experiment_from_excel.chemistry import ChemDB
 from openpyxl import load_workbook
@@ -26,9 +27,14 @@ class Notes:
         return parsed_dict
 
     # Get input values from notes and map them to the experiment to be updated in excel sheet
-    def map_input_values_from_notes_to_experiment(self, experiment: dict):
+    def map_input_values_from_notes_to_experiment(
+        self, experiment: dict, initials: str
+    ):
         if not self.notes or not experiment:
             return
+        # Fill date from notes into excel sheet
+        self.add_date_batch_id_to_excel(initials)
+
         # Get all keys experiment['inputs] and check if they are in notes
         # If they are, add them to experiment['inputs] with the value from notes
         for exp_key in experiment["inputs"]:
@@ -56,6 +62,25 @@ class Notes:
                                 break
                     break
 
+    def add_date_batch_id_to_excel(self, initials: str):
+        wb = load_workbook(filename=self.path, data_only=True)
+        date = self.notes.get("Mix Date and time", None)
+        polymerization_date = self.notes.get("Polymerization Date and time", None)
+        sheet = wb["general"]
+        if sheet and date:
+            # Update B2 cell with date
+            sheet["B2"] = date
+            sheet["B3"] = polymerization_date
+            # Update Initials
+            sheet["B1"] = initials
+            # Update batch ID
+            parsed_date = datetime.strptime(str(date), "%m/%d/%Y %H:%M")
+            # get the TYPE: IA/LDM from exp
+            batch_id = f"{parsed_date.day}-{parsed_date.month}-{parsed_date.year} {parsed_date.strftime('%H:%M')}  {initials}"
+            sheet["E32"] = batch_id
+            # Save the workbook
+            wb.save(self.path)
+
 
 #     Fill the values
 def process_metadata_input(
@@ -77,8 +102,11 @@ def process_metadata_input(
         smile = ""
         abbrev, mass = record.split(" ")
         if abbrev and not chemDB.new_data.empty:
-            full_name = chemDB.new_data.at[abbrev, "Component"]
-            smile = chemDB.new_data.at[abbrev, "SMILES"]
+            full_name = chemDB.new_data.loc[
+                chemDB.new_data["Abbreviation"] == abbrev, "Component"
+            ].values[0]
+            # new_data dataframe has index built on SMILES attribute
+            smile = chemDB.new_data[chemDB.new_data["Abbreviation"] == abbrev].index[0]
 
         else:
             full_name = abbrev  # Default to the short name if not recognized
