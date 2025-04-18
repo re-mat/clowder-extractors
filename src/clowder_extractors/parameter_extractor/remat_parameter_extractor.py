@@ -31,6 +31,7 @@ url_mapping = {
     "PostCure_IA": "https://uofi.box.com/shared/static/5vb0ek7htxk2wpoklyxsvk1ctgjwi9kw",
     "CureKin_LDM": "https://uofi.box.com/shared/static/k0ix1qjmle4iv5trvxqodbmaa8ip2roh",
 }
+datasheet_folder = "https://uofi.box.com/shared/static/91pz5we1ywgz7iftail1c0bulfgriq2o"
 
 
 def make_plot(dsc_file_path, tmpdirname):
@@ -69,7 +70,9 @@ def strip_units(param: str) -> float:
     return float(param.strip().split(" ")[0])
 
 
-def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, str):
+def extract_parameters(
+    path: str, dsc_file: TextIO, logger: Logger, temp_dir: str
+) -> (dict, str):
     section_re = re.compile(r"\[(.*)]$")
     parameters = {}
 
@@ -175,7 +178,7 @@ def extract_parameters(path: str, dsc_file: TextIO, logger: Logger) -> (dict, st
 
     # Download the datasheet file for the given space
     pd, datasheet_file = read_data_sheet_file(
-        url_mapping[template_datasheet], template_datasheet + ".xlsx"
+        url_mapping[template_datasheet], template_datasheet + ".xlsx", temp_dir
     )
     trios_notes.path = datasheet_file
 
@@ -306,7 +309,9 @@ def extract_notes_field(parameters: dict) -> dict:
     return parsed_dict
 
 
-def read_data_sheet_file(file_path: str, file_name: str) -> (pd.DataFrame, str):
+def read_data_sheet_file(
+    file_path: str, file_name: str, temp_dir: str
+) -> (pd.DataFrame, str):
 
     try:
         # Send a GET request to the URL
@@ -324,16 +329,19 @@ def read_data_sheet_file(file_path: str, file_name: str) -> (pd.DataFrame, str):
         else:
             output_file = file_name
 
+        # Use provided temp directory
+        temp_file_path = os.path.join(temp_dir, output_file)
+
         # Write the content to a local file
-        with open(output_file, "wb") as file:
+        with open(temp_file_path, "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
         print(f"File downloaded successfully as {output_file}")
 
         # Read the downloaded file into a pandas DataFrame
-        df = pd.read_excel(output_file)
+        df = pd.read_excel(temp_file_path)
 
-        return df, output_file
+        return df, temp_file_path
 
     except requests.exceptions.RequestException as e:
         print(f"An error occurred while downloading the file: {e}")
@@ -360,8 +368,10 @@ class ParameterExtractor(Extractor):
             dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
             with open(dsc_file_path, "w") as dsc_file:
                 parameters, datasheet_file = extract_parameters(
-                    resource["local_paths"][0], dsc_file, logger
+                    resource["local_paths"][0], dsc_file, logger, tmpdirname
                 )
+            # Upload datasheet from temp directory
+            temp_datasheet_path = os.path.join(tmpdirname, datasheet_file)
 
             # Upload the extracted CSV file
             dataset_id = resource["parent"].get("id", None)
@@ -389,6 +399,12 @@ class ParameterExtractor(Extractor):
             pyclowder.files.upload_thumbnail(
                 connector, host, secret_key, uploaded_id, thumb_file_path
             )
+            logger.info("uploading datasheet file to dataset %s", datasheet_file)
+
+            # Uploaded the downloaded datasheet file to the dataset
+            pyclowder.files.upload_to_dataset(
+                connector, host, secret_key, dataset_id, temp_datasheet_path, False
+            )
 
         logger.debug(parameters)
 
@@ -414,14 +430,6 @@ class ParameterExtractor(Extractor):
         except Exception as e:
             logger.error("Error uploading metadata: %s", e, exc_info=True)
 
-        logger.info("uploading datasheet file to dataset %s", datasheet_file)
-        # Uploaded the downloaded datasheet file to the dataset
-        pyclowder.files.upload_to_dataset(
-            connector, host, secret_key, dataset_id, datasheet_file, False
-        )
-        # Once uploaded delete the file from local storage
-        os.remove(datasheet_file)
-
 
 def main():
     if len(sys.argv) > 1:
@@ -429,7 +437,7 @@ def main():
         with tempfile.TemporaryDirectory() as tmpdirname:
             dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
             with open(dsc_file_path, "w") as dsc_file:
-                extract_parameters(sys.argv[1], dsc_file, logger)
+                extract_parameters(sys.argv[1], dsc_file, logger, tmpdirname)
             make_plot(dsc_file_path, tmpdirname)
             # find_volume_column()
             print(tmpdirname)
