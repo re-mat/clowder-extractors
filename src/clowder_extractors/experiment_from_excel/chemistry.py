@@ -124,10 +124,27 @@ class Inhibitor(ChemistryConverter):
     def __init__(self, smiles: str, db: ChemDB, mass=None, volume=None):
         super().__init__(smiles, db, mass, volume)
 
-    def inhibitor_catalyst_molar_ratio(self, catalyst: Catalyst) -> float:
-        denominator = catalyst.mass / catalyst.molecular_weight
+    def inhibitor_catalyst_molar_ratio(self, catalysts: list[Catalyst]) -> float:
+        # iterate through the catalyst list and sum the mass. if mass is None use 0
+        catalysts_mass = sum(
+            [catalyst.mass if catalyst.mass else 0 for catalyst in catalysts]
+        )
+        catalysts_molecular_weight = sum(
+            [
+                catalyst.molecular_weight if catalyst.molecular_weight else 0
+                for catalyst in catalysts
+            ]
+        )
+        denominator = catalysts_mass / catalysts_molecular_weight
+
+        inhibitor_mass = 0
+        if self.mass:
+            inhibitor_mass = self.mass
+        elif self.volume and self.density:
+            inhibitor_mass = self.volume * self.density
+
         inhibitor_catalyst_molar_ratio = (
-            (self.volume * self.density) / self.molecular_weight
+            inhibitor_mass / self.molecular_weight
         ) / denominator
         return round(inhibitor_catalyst_molar_ratio, 2)
 
@@ -146,16 +163,30 @@ class Additive(ChemistryConverter):
         super().__init__(smiles, db, mass, volume)
 
     def additive_weight_percent(
-        self, additives: list, monomers: list, catalyst: Catalyst, solvent: Solvent
+        self, additives: list, monomers: list, catalysts: list, solvents: list
     ) -> float:
         sum_m_i = sum([monomer.mass for monomer in monomers])
+        sum_catalysts_mass = sum(
+            [catalyst.mass if catalyst.mass else 0 for catalyst in catalysts]
+        )
+        sum_solvents_mass = sum(
+            [
+                (
+                    solvent.volume * solvent.density
+                    if solvent.volume is not None and solvent.density is not None
+                    else 0
+                )
+                for solvent in solvents
+            ]
+        )
+
         additive_weight_percent = (
             self.mass
             / (
                 sum_m_i
                 + sum([additive.mass for additive in additives])
-                + catalyst.mass
-                + (solvent.volume * solvent.density)
+                + sum_catalysts_mass
+                + sum_solvents_mass
             )
             * 100.0
         )

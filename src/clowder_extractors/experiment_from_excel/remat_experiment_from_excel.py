@@ -128,7 +128,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         compound["SMILES"]: Inhibitor(
             compound["SMILES"],
             db,
-            None,
+            mass_volume_conversion(compound.get("Measured mass (mg)", None)),
             microliters_to_milli(
                 mass_volume_conversion(compound["Measured volume (μL)"])
             ),
@@ -142,7 +142,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         compound["SMILES"]: Additive(
             compound["SMILES"],
             db,
-            mass_volume_conversion(compound["Measured mass (g)"]),
+            mass_volume_conversion(compound["Measured mass (mg)"]),
             microliters_to_milli(
                 mass_volume_conversion(compound["Measured volume (μL)"])
             ),
@@ -237,7 +237,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "Moles": moles_format.format(inhibitors[inhibitor["SMILES"]].moles()),
             "Inhibitor:Catalyst molar ratio": inhibitors[
                 inhibitor["SMILES"]
-            ].inhibitor_catalyst_molar_ratio(list(catalysts.values())[0]),
+            ].inhibitor_catalyst_molar_ratio(list(catalysts.values())),
         }
         for inhibitor in inputs["inhibitors"]
     ]
@@ -246,7 +246,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         {
             "name": additive["Name"],
             "SMILES": additive["SMILES"],
-            "Measured mass (g)": additive["Measured mass (g)"],
+            "Measured mass (mg)": additive["Measured mass (mg)"],
             "Measured volume (μL)": additive["Measured volume (μL)"],
             "Computed mass (g)": additives[additive["SMILES"]].mass,
             "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
@@ -256,8 +256,8 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             ].additive_weight_percent(
                 list(additives.values()),
                 list(monomers.values()),
-                list(catalysts.values())[0],
-                list(solvents.values())[0],
+                list(catalysts.values()),
+                list(solvents.values()),
             ),
         }
         for additive in inputs["additives"]

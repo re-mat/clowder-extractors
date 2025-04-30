@@ -90,7 +90,8 @@ def test_monomer_catalyst(db):
 
 def test_catalyst_inhibitor(db):
     inhibitor = Inhibitor(enb, db, volume=887.0)
-    catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
+    # create a list of catalyst
+    catalyst = [Catalyst(dicyclopentadiene, db, mass=870.0)]
 
     assert inhibitor.inhibitor_catalyst_molar_ratio(catalyst) == 1.0
 
@@ -100,18 +101,15 @@ def test_additives(db):
         Monomer(dicyclopentadiene, db, mass=870.0),
         Monomer(enb, db, mass=560.0),
     ]
-    inhibitor = Inhibitor(enb, db, volume=887.0)
-    catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
+    catalysts = list(Catalyst(dicyclopentadiene, db, mass=870.0))
     additives = [
         Additive(dicyclopentadiene, db, mass=870.0),
         Additive(enb, db, mass=560.0),
     ]
-    solvent = Solvent(enb, db, volume=887.0)
+    solvents = list(Solvent(enb, db, volume=887.0))
 
     assert (
-        additives[0].additive_weight_percent(
-            additives, monomers, catalyst, inhibitor, solvent
-        )
+        additives[0].additive_weight_percent(additives, monomers, catalysts, solvents)
         == 3884.79
     )
     assert round(additives[0].additive_volume_total(additives), 2) == 1514.85
@@ -123,15 +121,15 @@ def test_additives_converter(db):
         Monomer(enb, db, mass=560.0),
     ]
     # inhibitor = Inhibitor(enb, db, volume=887.0)
-    catalyst = Catalyst(dicyclopentadiene, db, mass=870.0)
+    catalysts = [Catalyst(dicyclopentadiene, db, mass=870.0)]
     additives = [
         Additive(enb, db, volume=560.0),
         Additive(dicyclopentadiene, db, volume=870.0),
     ]
-    solvent = Solvent(enb, db, volume=887.0)
+    solvents = [Solvent(enb, db, volume=887.0)]
 
     assert (
-        additives[0].additive_weight_percent(additives, monomers, catalyst, solvent)
+        additives[0].additive_weight_percent(additives, monomers, catalysts, solvents)
         == 11.25
     )
 
@@ -187,15 +185,15 @@ def test_total_volume(db):
 
 def test_derived_values(db):
     monomers = [Monomer(dicyclopentadiene, db, mass=10.51), Monomer(enb, db, mass=0.55)]
-    catalyst = Catalyst(gc2, db, mass=7.14 / 1000)
-    solvent = Solvent(mn1, db, volume=357.87)
+    catalysts = [Catalyst(gc2, db, mass=7.14 / 1000)]
+    solvents = [Solvent(mn1, db, volume=357.87)]
     additives = [Additive(fumed_si, db, mass=0.59), Additive(pbd, db, mass=0.12)]
 
     assert monomers[0].monomer_mol_percent(monomers) == 94.56
     assert monomers[1].monomer_mol_percent(monomers) == 5.44
-    assert catalyst.catalyst_monomer_molar_ratio(monomers) == 9997.09
+    assert catalysts[0].catalyst_monomer_molar_ratio(monomers) == 9997.09
     # assert round(solvent.solvent_concentration(catalyst), 2) == 0.02
     assert (
-        additives[1].additive_weight_percent(additives, monomers, catalyst, solvent)
+        additives[1].additive_weight_percent(additives, monomers, catalysts, solvents)
         == 0.03
     )
