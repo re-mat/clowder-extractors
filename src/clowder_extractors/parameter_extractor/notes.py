@@ -101,10 +101,13 @@ def process_metadata_input(
     for record in records:
         smile = ""
         abbrev, mass = record.split(" ")
+        # change to old data
         if abbrev and not chemDB.new_data.empty:
+            # use old data and get column abbreviation
             full_name = chemDB.new_data.loc[
                 chemDB.new_data["Abbreviation"] == abbrev, "Component"
             ].values[0]
+            # will change to just data
             # new_data dataframe has index built on SMILES attribute
             smile = chemDB.new_data[chemDB.new_data["Abbreviation"] == abbrev].index[0]
 
