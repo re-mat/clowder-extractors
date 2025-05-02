@@ -98,85 +98,140 @@ def compute_values(inputs: dict, inputs_procedure: dict):
 
     # MONOMERS
     db.exists([compound["SMILES"] for compound in inputs["monomers"]])
-    monomers = {
-        compound["SMILES"]: Monomer(
+    monomers = {}
+    for compound in inputs["monomers"]:
+        if "Measured mass (g)" in compound:
+            measured_mass = compound["Measured mass (g)"]
+        elif "Measured mass (mg)" in compound:
+            # For monomer alone we will use (g)
+            measured_mass = compound["Measured mass (mg)"] / 1000.0  # Convert mg to g
+            compound["Measured mass (g)"] = (
+                measured_mass  # Add the key to the compound dict for further use
+            )
+        else:
+            measured_mass = None
+
+        monomers[compound["SMILES"]] = Monomer(
             compound["SMILES"],
             db,
-            mass_volume_conversion(compound["Measured mass (g)"]),
+            mass_volume_conversion(measured_mass),
             microliters_to_milli(
                 mass_volume_conversion(compound["Measured volume (μL)"])
             ),
         )
-        for compound in inputs["monomers"]
-    }
 
     # CATALYSTS
     db.exists([compound["SMILES"] for compound in inputs["catalysts"]])
-    catalysts = {
-        compound["SMILES"]: Catalyst(
+    catalysts = {}
+    for compound in inputs["catalysts"]:
+        if "Measured mass (g)" in compound:
+            measured_mass_g = compound["Measured mass (g)"]
+            compound["Measured mass (mg)"] = measured_mass_g * 1000.0  # Convert g to mg
+        elif "Measured mass (mg)" in compound:
+            measured_mass_g = compound["Measured mass (mg)"] / 1000.0
+        else:
+            measured_mass_g = None
+
+        catalysts[compound["SMILES"]] = Catalyst(
             compound["SMILES"],
             db,
-            mass_volume_conversion(compound["Measured mass (mg)"]) / 1000.0,
+            mass_volume_conversion(measured_mass_g),
             None,
         )
-        for compound in inputs["catalysts"]
-    }
 
     # INHIBITORS
     db.exists([compound["SMILES"] for compound in inputs["inhibitors"]])
-    inhibitors = {
-        compound["SMILES"]: Inhibitor(
+    inhibitors = {}
+    for compound in inputs["inhibitors"]:
+        if "Measured mass (g)" in compound:
+            measured_mass = compound["Measured mass (g)"] * 1000.0  # Convert g to mg
+            compound["Measured mass (mg)"] = (
+                measured_mass  # Add the key to the compound dict for further use
+            )
+
+        elif "Measured mass (mg)" in compound:
+            measured_mass = compound["Measured mass (mg)"]
+        else:
+            measured_mass = None  # Handle missing mass case
+
+        inhibitors[compound["SMILES"]] = Inhibitor(
             compound["SMILES"],
             db,
-            mass_volume_conversion(compound.get("Measured mass (mg)", None)),
+            mass_volume_conversion(measured_mass),
             microliters_to_milli(
                 mass_volume_conversion(compound["Measured volume (μL)"])
             ),
         )
-        for compound in inputs["inhibitors"]
-    }
 
     # ADDITIVES
+    # will use (g) for calculation
     db.exists([compound["SMILES"] for compound in inputs["additives"]])
-    additives = {
-        compound["SMILES"]: Additive(
+    additives = {}
+    for compound in inputs["additives"]:
+        if "Measured mass (g)" in compound:
+            measured_mass = compound["Measured mass (g)"]
+        elif "Measured mass (mg)" in compound:
+            measured_mass = compound["Measured mass (mg)"] / 1000.0  # Convert mg to g
+            compound["Measured mass (g)"] = measured_mass
+        else:
+            measured_mass = None
+
+        additives[compound["SMILES"]] = Additive(
             compound["SMILES"],
             db,
-            mass_volume_conversion(compound["Measured mass (mg)"]),
+            mass_volume_conversion(measured_mass),
             microliters_to_milli(
                 mass_volume_conversion(compound["Measured volume (μL)"])
             ),
         )
-        for compound in inputs["additives"]
-    }
 
     # SOLVENTS
+    # will use mg for calculation
     db.exists([compound["SMILES"] for compound in inputs["solvents"]])
-    solvents = {
-        compound["SMILES"]: Solvent(
+    solvents = {}
+    for compound in inputs["solvents"]:
+        if "Measured mass (g)" in compound:
+            measured_mass = compound["Measured mass (g)"] * 1000.0
+            compound["Measured mass (mg)"] = (
+                measured_mass  # Add the key to the compound dict for further use
+            )
+        elif "Measured mass (mg)" in compound:
+            measured_mass = compound["Measured mass (mg)"]
+        else:
+            measured_mass = None
+
+        solvents[compound["SMILES"]] = Solvent(
             compound["SMILES"],
             db,
-            mass_volume_conversion(compound["Measured mass (mg)"]),
+            mass_volume_conversion(measured_mass),
             microliters_to_milli(
                 mass_volume_conversion(compound["Measured volume (μL)"])
             ),
         )
-        for compound in inputs["solvents"]
-    }
 
     # INITIATORS
+    # will use  mg for calculation
     db.exists([compound["SMILES"] for compound in inputs["chemical initiation"]])
-    initiators = {
-        compound["SMILES"]: Initiator(
+    initiators = {}
+    for compound in inputs["chemical initiation"]:
+        if "Measured mass (g)" in compound:
+            measured_mass = compound["Measured mass (g)"] * 1000.0
+            compound["Measured mass (mg)"] = (
+                measured_mass  # Add the key to the compound dict for further use
+            )
+        elif "Measured mass (mg)" in compound:
+            measured_mass = compound["Measured mass (mg)"]
+        else:
+            measured_mass = None
+
+        initiators[compound["SMILES"]] = Initiator(
             compound["SMILES"],
             db,
-            mass=mass_volume_conversion(compound["Measured mass (mg)"]),
+            mass=mass_volume_conversion(measured_mass),
             volume=microliters_to_milli(
                 mass_volume_conversion(compound["Measured volume (μL)"])
             ),
         )
-        for compound in inputs["chemical initiation"]
-    }
 
     total_initiator_catalyst_moles = sum(
         initiator.moles()
@@ -232,7 +287,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "SMILES": inhibitor["SMILES"],
             "Measured volume (μL)": inhibitor["Measured volume (μL)"],
             "Density": inhibitors[inhibitor["SMILES"]].density,
-            "Computed mass (mg)": inhibitors[inhibitor["SMILES"]].mass,
+            "Computed mass (g)": inhibitors[inhibitor["SMILES"]].mass,
             "Molecular Weight": inhibitors[inhibitor["SMILES"]].molecular_weight,
             "Moles": moles_format.format(inhibitors[inhibitor["SMILES"]].moles()),
             "Inhibitor:Catalyst molar ratio": inhibitors[
@@ -246,7 +301,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         {
             "name": additive["Name"],
             "SMILES": additive["SMILES"],
-            "Measured mass (mg)": additive["Measured mass (mg)"],
+            "Measured mass (g)": additive["Measured mass (g)"],
             "Measured volume (μL)": additive["Measured volume (μL)"],
             "Computed mass (g)": additives[additive["SMILES"]].mass,
             "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
