@@ -7,7 +7,6 @@ import pandas
 class ChemDB:
     def __init__(self):
         self.data = None
-        self.new_data = None
         self.load_database()
 
     def load_database(self):
@@ -15,10 +14,6 @@ class ChemDB:
 
         df = pandas.read_csv(
             "https://uofi.box.com/shared/static/p8r6ef1lcj0lk44ggcb6zmv1d66abyfk.csv",
-        )
-        # new chemistry database
-        new_df = pandas.read_csv(
-            "https://uofi.box.com/shared/static/jqk1g6bq1vud5rjmhtkwprg763bkj37i"
         )
 
         # Check if the index column is unique
@@ -30,16 +25,6 @@ class ChemDB:
         else:
             print("There are duplicate entries in the chemistry database.")
             raise ValueError("There are duplicate entries in the chemistry database.")
-
-        if new_df["SMILES"].is_unique:
-            new_df.set_index("SMILES", inplace=True)
-            self.new_data = new_df
-            self.data = new_df
-        else:
-            print("There are duplicate entries in the new chemistry database.")
-            raise ValueError(
-                "There are duplicate entries in the chemistry database. Unable to uniquely identify using Abbreviation"
-            )
 
     def exists(self, smiles: str | list) -> bool:
         if isinstance(smiles, str):

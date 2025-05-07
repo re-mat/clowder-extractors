@@ -103,7 +103,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
     for compound in inputs["monomers"]:
         if "Measured mass (g)" in compound:
             measured_mass = compound["Measured mass (g)"]
-        elif "Measured mass (mg)" in compound:
+        elif compound.get("Measured mass (mg)") is not None:
             # For monomer alone we will use (g)
             measured_mass = compound["Measured mass (mg)"] / 1000.0  # Convert mg to g
             compound["Measured mass (g)"] = (
@@ -128,7 +128,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         if "Measured mass (g)" in compound:
             measured_mass_g = compound["Measured mass (g)"]
             compound["Measured mass (mg)"] = measured_mass_g * 1000.0  # Convert g to mg
-        elif "Measured mass (mg)" in compound:
+        elif compound.get("Measured mass (mg)") is not None:
             measured_mass_g = compound["Measured mass (mg)"] / 1000.0
         else:
             measured_mass_g = None
@@ -146,7 +146,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
     for compound in inputs["inhibitors"]:
         if "Measured mass (g)" in compound:
             measured_mass = compound["Measured mass (g)"]
-        elif "Measured mass (mg)" in compound:
+        elif compound.get("Measured mass (mg)") is not None:
             measured_mass = compound["Measured mass (mg)"] / 1000.0
             compound["Measured mass (g)"] = (
                 measured_mass  # Add the key to the compound dict for further use
@@ -170,7 +170,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
     for compound in inputs["additives"]:
         if "Measured mass (g)" in compound:
             measured_mass = compound["Measured mass (g)"]
-        elif "Measured mass (mg)" in compound:
+        elif compound.get("Measured mass (mg)") is not None:
             measured_mass = compound["Measured mass (mg)"] / 1000.0  # Convert mg to g
             compound["Measured mass (g)"] = measured_mass
         else:
@@ -195,8 +195,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             compound["Measured mass (mg)"] = (
                 measured_mass * 1000.0
             )  # to display in meta-data for measured mass
-
-        elif "Measured mass (mg)" in compound:
+        elif compound.get("Measured mass (mg)") is not None:
             measured_mass = compound["Measured mass (mg)"] / 1000.0
             compound["Measured mass (g)"] = measured_mass
         else:
@@ -218,7 +217,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
     for compound in inputs["chemical initiation"]:
         if "Measured mass (g)" in compound:
             measured_mass = compound["Measured mass (g)"]
-        elif "Measured mass (mg)" in compound:
+        elif compound.get("Measured mass (mg)") is not None:
             measured_mass = compound["Measured mass (mg)"] / 1000.0  # Convert mg to g
             compound["Measured mass (g)"] = measured_mass
         else:
@@ -329,9 +328,13 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "Computed mass (g)": solvents[solvent["SMILES"]].mass,
             "Molecular Weight (g/mol)": solvents[solvent["SMILES"]].molecular_weight,
             "Moles": moles_format.format(solvents[solvent["SMILES"]].moles()),
-            "Solvent concentration (mL/g)": solvents[
-                solvent["SMILES"]
-            ].solvent_concentration(list(catalysts.values())[0]),
+            "Solvent concentration (mL/g)": (
+                solvents[solvent["SMILES"]].solvent_concentration(
+                    list(catalysts.values())[0]
+                )
+                if catalysts.values()
+                else None
+            ),
         }
         for solvent in inputs["solvents"]
     ]
