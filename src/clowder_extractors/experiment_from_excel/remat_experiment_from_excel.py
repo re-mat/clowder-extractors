@@ -144,13 +144,12 @@ def compute_values(inputs: dict, inputs_procedure: dict):
     inhibitors = {}
     for compound in inputs["inhibitors"]:
         if "Measured mass (g)" in compound:
-            measured_mass = compound["Measured mass (g)"] * 1000.0  # Convert g to mg
-            compound["Measured mass (mg)"] = (
+            measured_mass = compound["Measured mass (g)"]
+        elif "Measured mass (mg)" in compound:
+            measured_mass = compound["Measured mass (mg)"] / 1000.0
+            compound["Measured mass (g)"] = (
                 measured_mass  # Add the key to the compound dict for further use
             )
-
-        elif "Measured mass (mg)" in compound:
-            measured_mass = compound["Measured mass (mg)"]
         else:
             measured_mass = None  # Handle missing mass case
 
@@ -186,17 +185,19 @@ def compute_values(inputs: dict, inputs_procedure: dict):
         )
 
     # SOLVENTS
-    # will use mg for calculation
+    # will use (g) for calculation
     db.exists([compound["SMILES"] for compound in inputs["solvents"]])
     solvents = {}
     for compound in inputs["solvents"]:
         if "Measured mass (g)" in compound:
-            measured_mass = compound["Measured mass (g)"] * 1000.0
+            measured_mass = compound["Measured mass (g)"]
             compound["Measured mass (mg)"] = (
-                measured_mass  # Add the key to the compound dict for further use
-            )
+                measured_mass * 1000.0
+            )  # to display in meta-data for measured mass
+
         elif "Measured mass (mg)" in compound:
-            measured_mass = compound["Measured mass (mg)"]
+            measured_mass = compound["Measured mass (mg)"] / 1000.0
+            compound["Measured mass (g)"] = measured_mass
         else:
             measured_mass = None
 
@@ -215,12 +216,10 @@ def compute_values(inputs: dict, inputs_procedure: dict):
     initiators = {}
     for compound in inputs["chemical initiation"]:
         if "Measured mass (g)" in compound:
-            measured_mass = compound["Measured mass (g)"] * 1000.0
-            compound["Measured mass (mg)"] = (
-                measured_mass  # Add the key to the compound dict for further use
-            )
+            measured_mass = compound["Measured mass (g)"]
         elif "Measured mass (mg)" in compound:
-            measured_mass = compound["Measured mass (mg)"]
+            measured_mass = compound["Measured mass (mg)"] / 1000.0  # Convert mg to g
+            compound["Measured mass (g)"] = measured_mass
         else:
             measured_mass = None
 
@@ -257,7 +256,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "Measured mass (g)": monomer["Measured mass (g)"],
             "Measured volume (μL)": monomer["Measured volume (μL)"],
             "Computed mass (g)": monomers[monomer["SMILES"]].mass,
-            "Molecular Weight": monomers[monomer["SMILES"]].molecular_weight,
+            "Molecular Weight (g/mol)": monomers[monomer["SMILES"]].molecular_weight,
             "Moles": moles_format.format(monomers[monomer["SMILES"]].moles()),
             "Monomer mol%": monomers[monomer["SMILES"]].monomer_mol_percent(
                 monomers.values()
@@ -272,7 +271,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "SMILES": catalyst["SMILES"],
             "Measured mass (mg)": catalyst["Measured mass (mg)"],
             "Computed mass (g)": catalysts[catalyst["SMILES"]].mass,
-            "Molecular Weight": catalysts[catalyst["SMILES"]].molecular_weight,
+            "Molecular Weight (g/mol)": catalysts[catalyst["SMILES"]].molecular_weight,
             "Moles": moles_format.format(catalysts[catalyst["SMILES"]].moles()),
             "Monomer:Catalyst molar ratio": catalysts[
                 catalyst["SMILES"]
@@ -288,7 +287,9 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "Measured volume (μL)": inhibitor["Measured volume (μL)"],
             "Density": inhibitors[inhibitor["SMILES"]].density,
             "Computed mass (g)": inhibitors[inhibitor["SMILES"]].mass,
-            "Molecular Weight": inhibitors[inhibitor["SMILES"]].molecular_weight,
+            "Molecular Weight (g/mol)": inhibitors[
+                inhibitor["SMILES"]
+            ].molecular_weight,
             "Moles": moles_format.format(inhibitors[inhibitor["SMILES"]].moles()),
             "Inhibitor:Catalyst molar ratio": inhibitors[
                 inhibitor["SMILES"]
@@ -304,7 +305,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "Measured mass (g)": additive["Measured mass (g)"],
             "Measured volume (μL)": additive["Measured volume (μL)"],
             "Computed mass (g)": additives[additive["SMILES"]].mass,
-            "Molecular Weight": additives[additive["SMILES"]].molecular_weight,
+            "Molecular Weight (g/mol)": additives[additive["SMILES"]].molecular_weight,
             "Moles": moles_format.format(additives[additive["SMILES"]].moles()),
             "Wt Percent of Additives": additives[
                 additive["SMILES"]
@@ -324,12 +325,12 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "SMILES": solvent["SMILES"],
             "Measured mass (mg)": solvent["Measured mass (mg)"],
             "Measured volume (μL)": solvent["Measured volume (μL)"],
-            "Computed mass (mg)": solvents[solvent["SMILES"]].mass,
-            "Molecular Weight": solvents[solvent["SMILES"]].molecular_weight,
+            "Computed mass (g)": solvents[solvent["SMILES"]].mass,
+            "Molecular Weight (g/mol)": solvents[solvent["SMILES"]].molecular_weight,
             "Moles": moles_format.format(solvents[solvent["SMILES"]].moles()),
-            "Solvent concentration": solvents[solvent["SMILES"]].solvent_concentration(
-                list(catalysts.values())[0]
-            ),
+            "Solvent concentration (mL/g)": solvents[
+                solvent["SMILES"]
+            ].solvent_concentration(list(catalysts.values())[0]),
         }
         for solvent in inputs["solvents"]
     ]
@@ -341,7 +342,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
             "Role": initiators[chemical_initiation["SMILES"]].role.value,
             "Measured mass (mg)": chemical_initiation["Measured mass (mg)"],
             "Measured volume (μL)": chemical_initiation["Measured volume (μL)"],
-            "Molecular Weight": initiators[
+            "Molecular Weight (g/mol)": initiators[
                 chemical_initiation["SMILES"]
             ].molecular_weight,
             "Moles": moles_format.format(

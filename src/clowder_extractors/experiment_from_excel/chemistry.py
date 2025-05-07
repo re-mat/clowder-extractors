@@ -154,6 +154,11 @@ class Solvent(ChemistryConverter):
         super().__init__(smiles, db, mass, volume)
 
     def solvent_concentration(self, catalyst: Catalyst) -> float:
+        if self.volume is None:
+            if self.mass is None:
+                raise ValueError("Solvent Volume or mass must be specified")
+            self.volume = self.mass / self.density
+
         solvent_concentration = self.volume / catalyst.mass
         return round(solvent_concentration, 2)
 
