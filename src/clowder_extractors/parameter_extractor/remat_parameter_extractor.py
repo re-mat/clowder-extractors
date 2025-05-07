@@ -27,14 +27,8 @@ from clowder_extractors.parameter_extractor.notes import Notes
 from clowder_extractors.parameter_extractor.BoxHandler import BoxHandler
 
 
-# sample datasheets locations
-url_mapping = {
-    "CureKin_IA": "https://uofi.box.com/shared/static/12t8k0siycj2ec82sb9mrxnlnbt0ggq7",
-    "PostCure_IA": "https://uofi.box.com/shared/static/5vb0ek7htxk2wpoklyxsvk1ctgjwi9kw",
-    "CureKin_LDM": "https://uofi.box.com/shared/static/k0ix1qjmle4iv5trvxqodbmaa8ip2roh",
-}
 # Folder containing all datasheets - IF location changes, update the URL below in code
-# Must have read access to everyone
+# Must have read access to everyone and svc account
 datasheet_folder = "https://uofi.box.com/s/91pz5we1ywgz7iftail1c0bulfgriq2o"
 
 
