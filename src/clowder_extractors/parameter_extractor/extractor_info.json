@@ -18,7 +18,8 @@
   ],
   "process": {
     "file": [
-      "text/*"
+      "text/file",
+      "text/plain"
     ]
   },
   "external_services": [],
