@@ -24,6 +24,14 @@ If you are using an Apple Silicon Mac (M series), you will need to either:
    ```
 
 ### 2. Run Clowder
+#### 2.1 Set up Box Token as enviormnet variable
+Parameter extractor expects a Box token to be set as an environment variable. Get the box token(client secret) from https://uofi.app.box.com/developers/console/app/2374837/configuration
+You will need sufficient permission to access the portal. Contact[ bengal1@illinois.edu]() for access/token.
+You can set it up by running the following command in terminal or add in your bash/zhrc file:
+```sh
+export BOX_TOKEN={service_account_box_token}
+```
+#### 2.2 Set up Docker
 To start Clowder, ensure that the `docker-compose.yml` and `docker-compose-remat-extractors.yml` files are present:
 
 ```sh

@@ -24,6 +24,8 @@ from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import
     excel_to_json,
 )
 from clowder_extractors.parameter_extractor.notes import Notes
+from clowder_extractors.parameter_extractor.BoxHandler import BoxHandler
+
 
 # sample datasheets locations
 url_mapping = {
@@ -31,7 +33,9 @@ url_mapping = {
     "PostCure_IA": "https://uofi.box.com/shared/static/5vb0ek7htxk2wpoklyxsvk1ctgjwi9kw",
     "CureKin_LDM": "https://uofi.box.com/shared/static/k0ix1qjmle4iv5trvxqodbmaa8ip2roh",
 }
-datasheet_folder = "https://uofi.box.com/shared/static/91pz5we1ywgz7iftail1c0bulfgriq2o"
+# Folder containing all datasheets - IF location changes, update the URL below in code
+# Must have read access to everyone
+datasheet_folder = "https://uofi.box.com/s/91pz5we1ywgz7iftail1c0bulfgriq2o"
 
 
 def make_plot(dsc_file_path, tmpdirname):
@@ -177,9 +181,7 @@ def extract_parameters(
     initials = template_datasheet.split("_")[1]
 
     # Download the datasheet file for the given space
-    pd, datasheet_file = read_data_sheet_file(
-        url_mapping[template_datasheet], template_datasheet + ".xlsx", temp_dir
-    )
+    pd, datasheet_file = read_data_sheet_file(template_datasheet + ".xlsx", temp_dir)
     trios_notes.path = datasheet_file
 
     if not trios_notes.notes:
@@ -309,34 +311,18 @@ def extract_notes_field(parameters: dict) -> dict:
     return parsed_dict
 
 
-def read_data_sheet_file(
-    file_path: str, file_name: str, temp_dir: str
-) -> (pd.DataFrame, str):
+def read_data_sheet_file(file_name: str, temp_dir: str) -> (pd.DataFrame, str):
 
     try:
-        # Send a GET request to the URL
-        response = requests.get(file_path, stream=True)
-        response.raise_for_status()  # Raise an HTTPError for bad responses
+        # Use the BoxHandler class to get the Box client
+        box_handler = BoxHandler()
 
-        # Extract the filename from the Content-Disposition header
-        if "Content-Disposition" in response.headers:
-            content_disposition = response.headers["Content-Disposition"]
-            filename = re.findall('filename="(.+)"', content_disposition)
-            if filename:
-                output_file = filename[0]
-            else:
-                output_file = file_name
-        else:
-            output_file = file_name
-
-        # Use provided temp directory
-        temp_file_path = os.path.join(temp_dir, output_file)
-
-        # Write the content to a local file
-        with open(temp_file_path, "wb") as file:
-            for chunk in response.iter_content(chunk_size=8192):
-                file.write(chunk)
-        print(f"File downloaded successfully as {output_file}")
+        temp_file_path = os.path.join(temp_dir, file_name)
+        box_handler.download_file_by_name_from_shared_link(
+            shared_link=datasheet_folder,
+            file_name=file_name,
+            temp_file_path=temp_file_path,
+        )
 
         # Read the downloaded file into a pandas DataFrame
         df = pd.read_excel(temp_file_path)
