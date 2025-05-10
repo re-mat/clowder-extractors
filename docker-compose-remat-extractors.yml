@@ -27,6 +27,7 @@ services:
       - clowder
     environment:
       - RABBITMQ_URI=${RABBITMQ_URI:-amqp://guest:guest@rabbitmq/%2F}
+      - BOX_TOKEN=${BOX_TOKEN}
 
   dsc-csv-stripper:
     image:  ghcr.io/re-mat/dsc-csv-stripper:main
