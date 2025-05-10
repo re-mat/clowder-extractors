@@ -31,6 +31,8 @@ You can set it up by running the following command in terminal or add in your ba
 ```sh
 export BOX_TOKEN={service_account_box_token}
 ```
+This environment variable needs to be set up in local system before running the docker-compose command.
+
 #### 2.2 Set up Docker
 To start Clowder, ensure that the `docker-compose.yml` and `docker-compose-remat-extractors.yml` files are present:
 
