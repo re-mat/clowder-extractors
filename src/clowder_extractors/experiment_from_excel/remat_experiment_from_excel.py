@@ -195,7 +195,7 @@ def compute_values(inputs: dict, inputs_procedure: dict):
                 measured_mass * 1000.0
             )  # to display in meta-data for measured mass
 
-        elif "Measured mass (mg)" in compound:
+        elif compound.get("Measured mass (mg)", None):
             measured_mass = compound["Measured mass (mg)"] / 1000.0
             compound["Measured mass (g)"] = measured_mass
         else:
