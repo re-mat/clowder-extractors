@@ -432,13 +432,18 @@ def excel_to_json(path):
 
     wb = load_workbook(filename=path, data_only=True)
     # Find the data input spreadsheet version
-    ss_version = [
+    ss_version_props = [
         prop.value for prop in wb.custom_doc_props.props if prop.name == "File Version"
-    ][0]
+    ]
 
+    if not ss_version_props:
+        raise ValueError(
+            "This extractor requires a spreadsheet with a custom property named 'File Version'."
+        )
+    ss_version = ss_version_props[0]
     if ss_version != "3.0":
         raise ValueError(
-            f"This extractor is not compatible with spreadsheet version {ss_version}"
+            f"This extractor is not compatible with spreadsheet version {ss_version}."
         )
 
     inputs = {}
