@@ -15,7 +15,7 @@ dependencies = [
     "openpyxl==3.1.1",
     "pandas",
     "matplotlib==3.9.1",
-    "boxsdk"
+    "boxsdk==4.3.0"   # Pin to the last version that supported the old-style boxsdk
 ]
 
 [tool.hatch.version]
