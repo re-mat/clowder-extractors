@@ -227,7 +227,7 @@ def extract_parameters(
         }
 
     experiment = {
-        "procedure": {
+        "DSC Procedure": {
             "Experiment Type": parameters["Procedure"]["Test Name"],
             "Sample Name": parameters["Sample"]["Sample Name"],
             "Sample Mass (mg)": parameters["Sample"]["Sample Mass"],
