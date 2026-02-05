@@ -182,7 +182,7 @@ def extract_parameters(
         logger.debug("No notes found in the TRIOS file")
 
     experiment = {
-        "procedure": {
+        "DSC Procedure": {
             "Experiment Type": parameters["Procedure"]["Test Name"],
             "Sample Name": parameters["Sample"]["Sample Name"],
             "Sample Mass (mg)": parameters["Sample"]["Sample Mass"],
