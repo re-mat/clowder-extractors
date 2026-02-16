@@ -7,7 +7,7 @@ import re
 import sys
 import tempfile
 from logging import Logger
-from typing import TextIO
+from typing import List, Optional, TextIO, Tuple
 import pandas as pd
 import matplotlib.pyplot as plt
 import requests
@@ -68,9 +68,67 @@ def strip_units(param: str) -> float:
     return float(param.strip().split(" ")[0])
 
 
+def dataset_has_xls_file(
+    connector,
+    host: str,
+    secret_key: str,
+    dataset_id: str,
+    logger: Optional[Logger] = None,
+) -> bool:
+    """
+    Return True if the dataset already contains an .xls/.xlsx file.
+
+    Uses the `pyclowder` Python SDK to fetch dataset files via
+    `pyclowder.datasets.get_file_list(...)`, then checks for spreadsheet extensions.
+    """
+    if not dataset_id:
+        return False
+
+    try:
+        files = pyclowder.datasets.get_file_list(
+            connector, host, secret_key, dataset_id
+        )
+    except Exception as e:
+        if logger:
+            logger.debug(
+                "pyclowder.datasets.get_file_list failed for dataset %s: %s",
+                dataset_id,
+                e,
+            )
+        return False
+
+    if not isinstance(files, list):
+        return False
+
+    filenames: List[str] = []
+    for f in files:
+        if not isinstance(f, dict):
+            continue
+        fname = f.get("filename")
+
+        if not isinstance(fname, str) or not fname:
+            continue
+
+        filenames.append(fname)
+
+        if fname.lower().endswith((".xls", ".xlsx")):
+            if logger:
+                logger.info("Found spreadsheet file in dataset: %s", fname)
+            return True
+
+    if logger:
+        logger.info("filenames in dataset: %s", filenames)
+
+    return False
+
+
 def extract_parameters(
-    path: str, dsc_file: TextIO, logger: Logger, temp_dir: str
-) -> (dict, str):
+    path: str,
+    dsc_file: TextIO,
+    logger: Logger,
+    temp_dir: str,
+    skip_notes_and_excel: bool = False,
+) -> Tuple[dict, Optional[str]]:
     section_re = re.compile(r"\[(.*)]$")
     parameters = {}
 
@@ -168,19 +226,6 @@ def extract_parameters(
             "Max Baseline Temp": max_baseline_temp,
         }
 
-    trios_notes = Notes(parameters)
-    # "CureKin_IA", "PostCure_IA", "CureKin_LDM"
-    template_datasheet = trios_notes.notes["Data_sheet"]
-    # IA, LDM, etc
-    initials = template_datasheet.split("_")[1]
-
-    # Download the datasheet file for the given space
-    pd, datasheet_file = read_data_sheet_file(template_datasheet + ".xlsx", temp_dir)
-    trios_notes.path = datasheet_file
-
-    if not trios_notes.notes:
-        logger.debug("No notes found in the TRIOS file")
-
     experiment = {
         "procedure": {
             "Experiment Type": parameters["Procedure"]["Test Name"],
@@ -213,6 +258,45 @@ def extract_parameters(
     # Make a deep copy of the experiment dict to use for the inputs
     # Original experiment will be uploaded in parameter extractor and new copy will be modified to be used by excel extractor
     experiment_to_upload = copy.deepcopy(experiment)
+
+    # Idempotency: if an xls/xlsx already exists in the dataset, do not depend on Notes
+    # and do not run any Excel-template filling logic. Just return the base metadata.
+    if skip_notes_and_excel:
+        logger.info(
+            "Dataset already has spreadsheet; skipping Notes/Excel template work and returning base metadata only."
+        )
+        return experiment_to_upload, None
+
+    try:
+        trios_notes = Notes(parameters)
+    except Exception as e:
+        # Notes initialization can fail (e.g., Chemistry DB load). Notes are optional,
+        # so fall back to base metadata only.
+        logger.warning(
+            "Failed to initialize Notes; skipping Excel template work and returning base metadata only. Error: %s",
+            e,
+            exc_info=True,
+        )
+        return experiment_to_upload, None
+    # Notes are optional. If notes (or the required Data_sheet key) are not provided,
+    # do not fail and do not attempt to download or edit any Excel file.
+    if not trios_notes.notes or "Data_sheet" not in trios_notes.notes:
+        logger.info(
+            "No Notes/Data_sheet provided; skipping Excel template work and returning base metadata only."
+        )
+        return experiment_to_upload, None
+
+    # "CureKin_IA", "PostCure_IA", "CureKin_LDM"
+    template_datasheet = trios_notes.notes["Data_sheet"]
+    # IA, LDM, etc
+    initials = template_datasheet.split("_")[1]
+
+    # Download the datasheet file for the given space
+    pd, datasheet_file = read_data_sheet_file(template_datasheet + ".xlsx", temp_dir)
+    trios_notes.path = datasheet_file
+
+    if not trios_notes.notes:
+        logger.debug("No notes found in the TRIOS file")
 
     # Add the inputs object and Batch ID from experiment_from_excel to the experiment object
     try:
@@ -346,15 +430,36 @@ class ParameterExtractor(Extractor):
         logger = logging.getLogger("__main__")
         with tempfile.TemporaryDirectory() as tmpdirname:
             dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
-            with open(dsc_file_path, "w") as dsc_file:
-                parameters, datasheet_file = extract_parameters(
-                    resource["local_paths"][0], dsc_file, logger, tmpdirname
+            dataset_id = resource["parent"].get("id", None)
+            is_xls_file_present = dataset_has_xls_file(
+                connector, host, secret_key, dataset_id, logger
+            )
+            if is_xls_file_present:
+                connector.message_process(
+                    resource,
+                    "Datasheet already present in current dataset. New datasheet will not be created by the parameter extractor.",
                 )
-            # Upload datasheet from temp directory
-            temp_datasheet_path = os.path.join(tmpdirname, datasheet_file)
+            else:
+                connector.message_process(
+                    resource,
+                    "No datasheet found in dataset; will use Notes if present to create the datasheet.",
+                )
+
+            with open(dsc_file_path, "w") as dsc_file:
+                connector.message_process(
+                    resource, "Extracting parameters from text file..."
+                )
+                parameters, datasheet_file = extract_parameters(
+                    resource["local_paths"][0],
+                    dsc_file,
+                    logger,
+                    tmpdirname,
+                    skip_notes_and_excel=is_xls_file_present,
+                )
 
             # Upload the extracted CSV file
             dataset_id = resource["parent"].get("id", None)
+            connector.message_process(resource, "Uploading extracted DSC_Curve.csv...")
             uploaded_id = pyclowder.files.upload_to_dataset(
                 connector,
                 host,
@@ -379,12 +484,29 @@ class ParameterExtractor(Extractor):
             pyclowder.files.upload_thumbnail(
                 connector, host, secret_key, uploaded_id, thumb_file_path
             )
-            logger.info("uploading datasheet file to dataset %s", datasheet_file)
+            # Only upload a datasheet if we generated/downloaded one in this run.
+            # If the dataset already had a spreadsheet, keep the extractor idempotent.
+            if (not is_xls_file_present) and datasheet_file:
+                connector.message_process(
+                    resource,
+                    "Notes present in text file; using values to generate and upload the datasheet",
+                )
+                logger.info("uploading datasheet file to dataset %s", datasheet_file)
+                temp_datasheet_path = os.path.join(tmpdirname, datasheet_file)
 
-            # Uploaded the downloaded datasheet file to the dataset
-            pyclowder.files.upload_to_dataset(
-                connector, host, secret_key, dataset_id, temp_datasheet_path, False
-            )
+                pyclowder.files.upload_to_dataset(
+                    connector, host, secret_key, dataset_id, temp_datasheet_path, False
+                )
+            elif is_xls_file_present:
+                connector.message_process(
+                    resource,
+                    "Skipping datasheet upload (spreadsheet already present in dataset).",
+                )
+            else:
+                connector.message_process(
+                    resource,
+                    "Notes not provided or incorrect; returning base parameter metadata only (no datasheet upload).",
+                )
 
         logger.debug(parameters)
 
