@@ -7,7 +7,7 @@ import re
 import sys
 import tempfile
 from logging import Logger
-from typing import List, Optional, TextIO, Tuple
+from typing import Optional, TextIO, Tuple
 import pandas as pd
 import matplotlib.pyplot as plt
 import requests
@@ -22,6 +22,10 @@ import json
 # from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import compute_values
 from clowder_extractors.experiment_from_excel.remat_experiment_from_excel import (
     excel_to_json,
+)
+from clowder_extractors.parameter_extractor.clowder_dataset_helpers import (
+    dataset_has_xls_file,
+    delete_files_from_dataset_by_filename,
 )
 from clowder_extractors.parameter_extractor.notes import Notes
 from clowder_extractors.parameter_extractor.BoxHandler import BoxHandler
@@ -66,60 +70,6 @@ def extract_baseline_temps(baseline_cursor_x: list[str]) -> (float, float):
 
 def strip_units(param: str) -> float:
     return float(param.strip().split(" ")[0])
-
-
-def dataset_has_xls_file(
-    connector,
-    host: str,
-    secret_key: str,
-    dataset_id: str,
-    logger: Optional[Logger] = None,
-) -> bool:
-    """
-    Return True if the dataset already contains an .xls/.xlsx file.
-
-    Uses the `pyclowder` Python SDK to fetch dataset files via
-    `pyclowder.datasets.get_file_list(...)`, then checks for spreadsheet extensions.
-    """
-    if not dataset_id:
-        return False
-
-    try:
-        files = pyclowder.datasets.get_file_list(
-            connector, host, secret_key, dataset_id
-        )
-    except Exception as e:
-        if logger:
-            logger.debug(
-                "pyclowder.datasets.get_file_list failed for dataset %s: %s",
-                dataset_id,
-                e,
-            )
-        return False
-
-    if not isinstance(files, list):
-        return False
-
-    filenames: List[str] = []
-    for f in files:
-        if not isinstance(f, dict):
-            continue
-        fname = f.get("filename")
-
-        if not isinstance(fname, str) or not fname:
-            continue
-
-        filenames.append(fname)
-
-        if fname.lower().endswith((".xls", ".xlsx")):
-            if logger:
-                logger.info("Found spreadsheet file in dataset: %s", fname)
-            return True
-
-    if logger:
-        logger.info("filenames in dataset: %s", filenames)
-
-    return False
 
 
 def extract_parameters(
@@ -431,6 +381,22 @@ class ParameterExtractor(Extractor):
         with tempfile.TemporaryDirectory() as tmpdirname:
             dsc_file_path = os.path.join(tmpdirname, "DSC_Curve.csv")
             dataset_id = resource["parent"].get("id", None)
+            connector.message_process(
+                resource, "Checking dataset for existing DSC_Curve.csv..."
+            )
+            deleted_count = delete_files_from_dataset_by_filename(
+                connector, host, secret_key, dataset_id, "DSC_Curve.csv", logger
+            )
+            if deleted_count > 0:
+                connector.message_process(
+                    resource,
+                    f"Deleted {deleted_count} existing DSC_Curve.csv file(s); recreating DSC_Curve.csv.",
+                )
+            else:
+                connector.message_process(
+                    resource, "No existing DSC_Curve.csv found; creating DSC_Curve.csv."
+                )
+
             is_xls_file_present = dataset_has_xls_file(
                 connector, host, secret_key, dataset_id, logger
             )
