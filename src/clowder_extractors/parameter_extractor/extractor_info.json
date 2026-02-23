@@ -1,6 +1,6 @@
 {
   "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
-  "name": "remat.batch-parameter-from-txt",
+  "name": "remat.parameter-from-txt",
   "version": "1.0.0",
   "description": "Extract experiment procedure json from TA Instruments DSC",
   "author": "Ben Galewsky <bengal1@illinois.edu>",
