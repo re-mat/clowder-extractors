@@ -4,7 +4,7 @@ This script is designed for one-off / batch orchestration tasks.
 It uses `pyclowder` wherever possible and falls back to direct API calls for
 endpoints that are not wrapped by the SDK.
 To run:
-PYTHONPATH=src ./venv/bin/python src/clowder_extractors/parameter_extractor/trigger_space_file_extractions.py --host "http://localhost:8000/" --api-key "217ae198-a352-4d2d-9c9a-9ef4c9320ab4" --space-id "69956039e4b0e287e29a07c8" --extractor "remat.parameters.from_txt" --extensions .txt --verbose
+PYTHONPATH=src ./venv/bin/python scripts/trigger_space_file_extractions.py --host "http://localhost:8000/" --api-key "217ae198-a352-4d2d-9c9a-9ef4c9320ab4" --space-id "69956039e4b0e287e29a07c8" --extractor "remat.parameters.from_txt" --extensions .txt --verbose
 """
 
 from __future__ import annotations

@@ -5,7 +5,7 @@ This script is intentionally safety-first:
 2) It asks for an explicit terminal confirmation before deleting anything.
 3) It downloads metadata backups to disk before each delete request.
 To run:
-PYTHONPATH=src ./venv/bin/python src/clowder_extractors/parameter_extractor/delete_space_file_metadata.py --host "http://localhost:8000/" \
+PYTHONPATH=src ./venv/bin/python scripts/delete_space_file_metadata.py --host "http://localhost:8000/" \
   --api-key "YOUR_API_KEY" \
   --space-id "YOUR_SPACE_ID" \
   --verbose
