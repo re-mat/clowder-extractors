@@ -1,0 +1,184 @@
+{
+  "info": {
+    "_postman_id": "297e5a19-64fe-4e1a-b551-14c976981b78",
+    "name": "ClowderElasticSearch",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "10122235"
+  },
+  "item": [
+    {
+      "name": "1. List all indices",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{host}}/_cat/indices?v&pretty",
+          "host": [
+            "{{host}}"
+          ],
+          "path": [
+            "_cat",
+            "indices"
+          ],
+          "query": [
+            {
+              "key": "v",
+              "value": null
+            },
+            {
+              "key": "pretty",
+              "value": null
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Check cluster health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{host}}/_cluster/health?pretty",
+          "host": [
+            "{{host}}"
+          ],
+          "path": [
+            "_cluster",
+            "health"
+          ],
+          "query": [
+            {
+              "key": "pretty",
+              "value": null
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Get index mappings",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{host}}/{{index}}/_mapping?pretty",
+          "host": [
+            "{{host}}"
+          ],
+          "path": [
+            "{{index}}",
+            "_mapping"
+          ],
+          "query": [
+            {
+              "key": "pretty",
+              "value": null
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. Get index settings",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "6. Check for aliases",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{host}}/_aliases?pretty",
+          "host": [
+            "{{host}}"
+          ],
+          "path": [
+            "_aliases"
+          ],
+          "query": [
+            {
+              "key": "pretty",
+              "value": null
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CreateNewIndex",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "ReIndex",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "5. SampleDocs",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "Add Alias",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actions\": [\n    { \"remove\": { \"index\": \"clowder_v2\", \"alias\": \"clowder_clean\" } },\n    { \"add\":    { \"index\": \"clowder_v2\", \"alias\": \"clowder\" } }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{host}}/_aliases",
+          "host": [
+            "{{host}}"
+          ],
+          "path": [
+            "_aliases"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Index",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{host}}/clowder",
+          "host": [
+            "{{host}}"
+          ],
+          "path": [
+            "clowder"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
