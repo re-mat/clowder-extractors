@@ -25,6 +25,24 @@ from pyclowder.utils import CheckMessage
 
 moles_format = "{:.2e}"
 
+OLIGOMERS_SHEET = "oligomers"
+PARENT_URL_HEADER = "Parent Dataset URL"
+PROCEDURE_SENTINEL = "PROCEDURE"
+
+# Exact tab names as they appear in real ReGen workbooks (capital G).
+REGEN_SHEETS = (
+    "oligomers",
+    "ReGen_Decon",
+    "ReGen_PostProc",
+    "ReGen_Results",
+    "ROMP_cycle",
+    "ReGen_PostProcess_list",
+)
+
+# Feature flag: run the legacy chemistry/FROMP extraction alongside ReGen.
+# Its failure must never block ReGen extraction (see excel_to_json).
+ENABLE_STANDARD_EXTRACTION = True
+
 
 def microliters_to_milli(value):
     if value and value != "-":
@@ -440,20 +458,209 @@ def read_batch_id(wb: Workbook) -> str:
     return batch_id_cell.value
 
 
-def excel_to_json(path):
-    logging.getLogger("__main__")
+def parse_dataset_id(url):
+    """Extract the Clowder dataset UUID from a Parent Dataset URL.
 
-    wb = load_workbook(filename=path, data_only=True)
-    # Find the data input spreadsheet version
-    ss_version = [
+    The id is the path segment between '/datasets/' and '?space=' (or the end
+    of the string). Returns None for empty or malformed URLs.
+    """
+    if not url or "/datasets/" not in url:
+        return None
+    tail = url.split("/datasets/", 1)[1]
+    return tail.split("?", 1)[0].strip("/") or None
+
+
+def read_oligomers_from_worksheet(ws: Worksheet) -> dict:
+    """Parse the ReGen oligomers tab into parent linkage and prep procedure.
+
+    The tab lists parent experiment Oligo IDs in column A (rows above the
+    PROCEDURE sentinel). Column C ('Parent Dataset URL') is present only on
+    child experiments uploaded after remat-data issue #19. Rows below the
+    PROCEDURE sentinel are the oligomer-prep procedure (key/value in A/B).
+
+    Any extra columns beyond Oligo ID and Parent Dataset URL (e.g. weight
+    fields like "Measured mass (g)") are captured verbatim using the header
+    label as the key, so new measurement columns are picked up automatically.
+    """
+    rows = list(ws.rows)
+    if not rows:
+        return {"is_root": True, "parents": [], "procedure": {}}
+
+    header = [col.value for col in rows[0]]
+    url_col = header.index(PARENT_URL_HEADER) if PARENT_URL_HEADER in header else None
+
+    # Columns that are NOT the fixed Oligo ID (0) or Parent Dataset URL —
+    # these are extra measurements (weight, fraction, etc.) to capture verbatim.
+    extra_cols = [(i, h) for i, h in enumerate(header) if i != 0 and h and i != url_col]
+
+    parents = []
+    procedure = {}
+    inside_procedure = False
+    for row in ws.iter_rows(min_row=2):
+        oligo_id = row[0].value
+
+        if oligo_id == PROCEDURE_SENTINEL:
+            inside_procedure = True
+            continue
+
+        if not inside_procedure:
+            if not oligo_id:
+                continue
+            dataset_url = row[url_col].value if url_col is not None else None
+            parent = {
+                "oligo_id": oligo_id,
+                "dataset_id": parse_dataset_id(dataset_url),
+                "dataset_url": dataset_url,
+            }
+            for col_idx, col_name in extra_cols:
+                val = row[col_idx].value if col_idx < len(row) else None
+                if val is not None:
+                    parent[col_name] = val
+            parents.append(parent)
+        else:
+            if oligo_id:
+                procedure[oligo_id] = row[1].value
+
+    return {
+        "is_root": len(parents) == 0,
+        "parents": parents,
+        "procedure": procedure,
+    }
+
+
+def read_decon_from_worksheet(ws: Worksheet) -> dict:
+    """Parse the ReGen_Decon tab into deconstruction reagents and procedure.
+
+    The tab holds a reagent table (Name/SMILES/Measured volume (mL)/Supplier/
+    Lot #) above a PROCEDURE sentinel, then key/value procedure rows (A/B).
+    """
+    rows = list(ws.rows)
+    if not rows:
+        return {"reagents": [], "procedure": {}}
+
+    headers = [col.value for col in rows[0]]
+
+    reagents = []
+    procedure = {}
+    inside_procedure = False
+    for row in ws.iter_rows(min_row=2):
+        first = row[0].value
+
+        if first == PROCEDURE_SENTINEL:
+            inside_procedure = True
+            continue
+
+        if not inside_procedure:
+            if not first:
+                continue
+            reagents.append({key: cell.value for key, cell in zip(headers, row) if key})
+        else:
+            if first:
+                procedure[first] = row[1].value
+
+    return {"reagents": reagents, "procedure": procedure}
+
+
+def read_results_from_worksheet(ws: Worksheet) -> dict:
+    """Parse the ReGen_Results tab (column A label, column B value).
+
+    Label rows with no value (e.g. the 'CLOWDER SHOULD CALCULATE…' note) are
+    skipped so only real measurements are emitted.
+    """
+    results = {}
+    for row in ws.iter_rows():
+        label = row[0].value
+        value = row[1].value if len(row) > 1 else None
+        if label and value is not None:
+            results[label] = value
+    return results
+
+
+def read_postproc_from_worksheet(ws: Worksheet) -> dict:
+    """Parse the ReGen_PostProc tab's wide STEP 1..N layout.
+
+    Each step occupies a pair of columns: the left column of row 1 holds the
+    step name ('STEP 1', 'STEP 2', …) and subsequent rows hold field labels
+    and values. Returns a dict keyed by step name; steps whose values are all
+    empty or sentinel placeholders (N/A, #N/A) are omitted.
+    """
+    rows = list(ws.rows)
+    if not rows:
+        return {}
+
+    placeholders = {"N/A", "#N/A", None, ""}
+    num_cols = max(len(r) for r in rows)
+
+    steps = {}
+    for step_col in range(0, num_cols - 1, 2):
+        label_col = step_col
+        value_col = step_col + 1
+
+        # Row 1: step name banner (e.g. 'STEP 1') is in the label column.
+        step_name = rows[0][label_col].value if label_col < len(rows[0]) else None
+        if not step_name:
+            continue
+
+        step = {}
+        for row in rows[1:]:
+            if value_col >= len(row):
+                continue
+            label = row[label_col].value
+            value = row[value_col].value
+            if not label or label in placeholders:
+                continue
+            if value in placeholders:
+                continue
+            step[label] = value
+
+        if step:
+            steps[step_name] = step
+
+    return steps
+
+
+# sheet name -> (output_key, parser_fn).
+REGEN_TAB_PARSERS = {
+    OLIGOMERS_SHEET: ("oligomers", read_oligomers_from_worksheet),
+    "ReGen_Decon": ("decon", read_decon_from_worksheet),
+    "ReGen_PostProc": ("postproc", read_postproc_from_worksheet),
+    "ReGen_Results": ("results", read_results_from_worksheet),
+    # Not yet implemented — add a parser + uncomment to enable extraction.
+    # "ROMP_cycle":             ("romp_cycle",       read_romp_cycle_from_worksheet),
+    # "ReGen_PostProcess_list": ("postprocess_list", read_postprocess_list_from_worksheet),
+}
+
+
+def extract_regen(wb: Workbook) -> dict:
+    """Run each registered ReGen tab parser whose sheet is present.
+
+    Each parser is isolated: a failure logs and is skipped so the rest of the
+    ReGen block still emits.
+    """
+    regen = {}
+    for sheet_name, (out_key, parser) in REGEN_TAB_PARSERS.items():
+        if sheet_name in wb.sheetnames:
+            try:
+                regen[out_key] = parser(wb[sheet_name])
+            except Exception:
+                logging.getLogger("__main__").exception(
+                    "ReGen tab '%s' failed to parse; skipping", sheet_name
+                )
+    return regen
+
+
+def _get_file_version(wb: Workbook):
+    """Return the 'File Version' custom doc prop, or None if absent.
+
+    ReGen-only workbooks may lack this property, so we avoid indexing [0].
+    """
+    versions = [
         prop.value for prop in wb.custom_doc_props.props if prop.name == "File Version"
-    ][0]
+    ]
+    return versions[0] if versions else None
 
-    if ss_version != "3.0":
-        raise ValueError(
-            f"This extractor is not compatible with spreadsheet version {ss_version}"
-        )
 
+def _extract_standard(wb: Workbook) -> dict:
     inputs = {}
     batch_id = read_batch_id(wb)
     procedure = {}
@@ -473,8 +680,8 @@ def excel_to_json(path):
     # There are multiple sheets in this workbook. Some describe the inputs some
     # are just procedure. The Geometry sheet is just a library of geometries
     for sheet in wb.sheetnames:
-        if sheet == "geometries":
-            pass  # This sheet is just a library of geometries
+        if sheet == "geometries" or sheet in REGEN_SHEETS:
+            pass  # geometries is a library; ReGen sheets are handled separately
         elif sheet in [
             "general",
             "thermal initiation",
@@ -529,6 +736,51 @@ def excel_to_json(path):
 
     if procedure["general"]["Type of polymerization"] == "FROMP":
         result["FROMP Measurements"] = fromp_measurements
+
+    return result
+
+
+def _oligomers_has_data(wb: Workbook) -> bool:
+    """Return True only when the oligomers tab exists AND has at least one
+    non-header data row (i.e. a real ReGen submission, not just the template
+    with an empty oligomers tab).
+    """
+    if OLIGOMERS_SHEET not in wb.sheetnames:
+        return False
+    ws = wb[OLIGOMERS_SHEET]
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if any(cell is not None for cell in row):
+            return True
+    return False
+
+
+def excel_to_json(path):
+    logging.getLogger("__main__")
+
+    wb = load_workbook(filename=path, data_only=True)
+
+    has_regen = _oligomers_has_data(wb)
+    ss_version = _get_file_version(wb)
+
+    result = {}
+
+    # Legacy chemistry/FROMP extraction — feature-flagged and isolated.
+    # Its failure must never block ReGen extraction.
+    if ENABLE_STANDARD_EXTRACTION and ss_version == "3.0":
+        try:
+            result = _extract_standard(wb)
+        except Exception:
+            logging.getLogger("__main__").exception("Standard extraction failed")
+            if not has_regen:
+                # Non-ReGen file: preserve the original hard-fail behavior.
+                raise
+    elif not has_regen and ss_version != "3.0":
+        raise ValueError(
+            f"This extractor is not compatible with spreadsheet version {ss_version}"
+        )
+
+    if has_regen and ss_version == "3.0":
+        result["regen"] = extract_regen(wb)
 
     return result
 
