@@ -50,5 +50,10 @@ ignore = [
 ]
 
 
+[tool.codespell]
+# These misspellings appear verbatim as field labels in the ReGen Excel sheets
+# and must be preserved exactly so extracted metadata keys match the source.
+ignore-words-list = "stirr,inital"
+
 [tool.poetry.dev-dependencies]
 flake8 = "^6.x"
